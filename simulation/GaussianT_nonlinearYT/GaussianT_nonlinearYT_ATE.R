@@ -126,7 +126,7 @@ true_df <- tibble(case = 1:nrow(t_choice),
 true_df$group = factor(true_df$group)
 
 
-plot_nonlinearYT_simple_mean <- tibble(SR1=ate_sens_p1[,'mean'],
+plot_nonlinearYT_ate <- tibble(SR1=ate_sens_p1[,'mean'],
        SR0=ate_sens_0[,'mean'],
        SR_1=ate_sens_n1[,'mean'],
        case=1:nrow(t_choice)) %>% 
@@ -151,7 +151,7 @@ plot_nonlinearYT_simple_mean <- tibble(SR1=ate_sens_p1[,'mean'],
   theme(plot.title = element_text(hjust = 0.5),
         legend.text.align = 0)
 print(plot_nonlinearYT_simple_mean)
-ggsave("plot_nonlinearYT_simple_mean.pdf", plot = plot_nonlinearYT_simple_mean,
+ggsave("plot_nonlinearYT_ate.pdf", plot = plot_nonlinearYT_ate,
        width = 150, height = 100, units = "mm", path = "simulation/GaussianT_nonlinearYT")
 
 
