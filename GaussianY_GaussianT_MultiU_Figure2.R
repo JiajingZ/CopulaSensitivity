@@ -79,13 +79,6 @@ bound_max2min06 <- t(apply(dt_max2min, 2, cal_ate_bias_bound,
 bound_max2min03 <- t(apply(dt_max2min, 2, cal_ate_bias_bound, 
                            r2 = 0.3, sigma = sigma_y_t_hat, A = A_hat))
 
-
-# bound_max2min <- t(apply(dt_max2min, 2, est_mean_bound,   ## function est_mean_bound used
-#                          tau0 = tau0_hat, sigma = sigma_y_t_hat, A = A_hat, GaussianT = T))
-# true_max2min <- t(dt_max2min) %*% tau
-# bound_max2min06 <- est_calibrated_bound(bound_max2min, 0.6)
-# bound_max2min03 <- est_calibrated_bound(bound_max2min, 0.3)
-
 #-------------------------plot bound width using ggplot ------------------------------------------------------
 
 
@@ -123,49 +116,10 @@ ate_bias_bound <- bound_df_narrow %>%
                      labels = c("0", expression(pi/8), expression(pi/4), expression(3*pi/8), expression(pi/2)),
                      limits = c(0, pi/2))
 ate_bias_bound
-ggsave("ate_bias_bound.pdf", plot = ate_bias_bound, width = 150, height = 100, units = "mm",
-       path = "~/Desktop/Research/Latent Confounder Model/Figures")
+# ggsave("ate_bias_bound.pdf", plot = ate_bias_bound, width = 150, height = 100, units = "mm"s)
 
-
-#-------------------------plot bound width and distirbution using basics ---------------------------------------------------------
-# matplot(theta, cbind(true_max2min, bound_max2min), type="l", lty = c(2,3,1,1), 
-#         col = c("red", "blue", "black", "black"),
-#         ylab = "E(Y|do(t)) - E(Y|do(0))", xlab = expression(theta),
-#         main = "Ignorance Region From Max to Min", xaxt = "n")
-# axis(side = 1, at = c(0, 1/8, 1/4, 3/8, 1/2) * pi, 
-#      labels = c("0", expression(pi/8), expression(pi/4), expression(3*pi/8), expression(pi/2)))
-# legend("bottomright", lty = c(2,3,1), col = c("red", "blue", "black"),
-#        legend = c("True", expression(paste(R^2, " = 0")), expression(paste(R^2, "= 1"))), cex = 0.7)
-
-
-# coef_mu_u_t_hat <- fit_zt$coef_mu_u_zt_hat
-# Sigma_u_t_hat <- fit_zt$Sigma_u_zt_hat
-# ## mu_u_t_max_pos ##
-# u_t_max_pos <- coef_mu_u_t_hat %*% t_max
-# ## mu_u_t_max_neg ##
-# u_t_max_neg <- coef_mu_u_t_hat %*% -t_max
-# ## mu_u_t_min_pos ##
-# u_t_min_pos <- coef_mu_u_t_hat %*% t_min
-# ## mu_u_t_min_neg ##
-# u_t_min_neg <- coef_mu_u_t_hat %*% -t_min
-
-# var_u1_t <- Sigma_u_t_hat[1, 1]
-# p1 <- ggplot(data = data.frame(u1 = c(-1, 1)), mapping = aes(x = u1)) + 
-#   stat_function(fun = dnorm, n = 101, args = list(mean = u_t_max_pos[1], sd = var_u1_t)) + 
-#   scale_y_continuous(name = "U1|t_max")
-# p2 <- ggplot(data = data.frame(u1 = c(-1, 1)), mapping = aes(x = u1)) + 
-#   stat_function(fun = dnorm, n = 101, args = list(mean = u_t_max_neg[1], sd = var_u1_t)) + 
-#   scale_y_continuous(name = "U1|-t_max")
-# p3 <- ggplot(data = data.frame(u1 = c(-1, 1)), mapping = aes(x = u1)) + 
-#   stat_function(fun = dnorm, n = 101, args = list(mean = u_t_min_pos[1], sd = var_u1_t)) + 
-#   scale_y_continuous(name = "U1|t_min")
-# p4 <- ggplot(data = data.frame(u1 = c(-1, 1)), mapping = aes(x = u1)) + 
-#   stat_function(fun = dnorm, n = 101, args = list(mean = u_t_min_neg[1], sd = var_u1_t)) + 
-#   scale_y_continuous(name = "U1|-t_min")
-# ggarrange(p1, p3, p2, p4, ncol = 2, nrow = 2)
 
 #---------------------------- plot distirbution using ggridges ------------------------------------------------
-
 
 coef_mu_u_t_hat <- fit_zt$coef_mu_u_zt_hat
 Sigma_u_t_hat <- fit_zt$Sigma_u_zt_hat
@@ -189,7 +143,7 @@ plot_max <- density_tibble_max %>%
   ggridges::geom_ridgeline(aes(x=u, height=dens, y=t, fill = t), scale=2, alpha=0.75) + 
   theme_bw(base_size=13) + 
   theme(plot.title = element_text(hjust = 0.5),
-        legend.position=c(0.1, 0.96),
+        legend.position=c(0.08, 0.975),
         legend.text=element_text(size=11),
         legend.title = element_text(size = 9),
         legend.key.size = unit(0.25, "cm"),
@@ -204,7 +158,7 @@ plot_max <- density_tibble_max %>%
   labs(title = expression(Delta~"t" ~ "=" ~ u[1]^B), x=expression(U[1]), 
        y = expression('Disttribution of'~U[1]))
 plot_max
-## \Delta t = u_1^B: E(U1|t) = [-3.97, 0, 0]
+
 
 t1_min <- c(-1,-1,1,-1,1,1,1,-1,-1,-1)
 t2_min <- t1_min - dt_min
@@ -219,10 +173,10 @@ density_tibble_min <- density_tibble_min %>%
   bind_rows(upop_density_tibble)
 plot_min <- density_tibble_min %>% 
   ggplot() + 
-  ggridges::geom_ridgeline(aes(x=u, height=dens, y=t, fill = t), scale=2, alpha = 0.5) + 
+  ggridges::geom_ridgeline(aes(x=u, height=dens, y=t, fill = t), scale=2, alpha = 0.75) + 
   theme_bw(base_size=13) + 
   theme(plot.title = element_text(hjust = 0.5),
-        legend.position=c(0.1, 0.96),
+        legend.position=c(0.08, 0.975),
         legend.text=element_text(size=11),
         legend.title = element_text(size = 9),
         legend.key.size = unit(0.3, "cm"),
@@ -239,78 +193,5 @@ plot_min <- density_tibble_min %>%
 plot_min
 
 plot_max + plot_min
-ggsave("bound_width_udist.pdf", plot = plot_max + plot_min, width = 150, height = 100, units = "mm",
-       path = "~/Desktop/Research/Latent Confounder Model/Figures")
-
-# the narrowest bound is achieved when t is in the Null(A) #
-svd_A <- svd(A_hat)
-v_A <- svd_A$v
-null_A <- rstiefel::NullC(v_A)
-est_mean_bound(null_A[, 1], tau0 = tau0_hat, 
-               sigma = sigma_y_t_hat, A = A_hat, GaussianT = T)
-
-# the widest bound is achieved when t is the first singular value of A #
-max_bound <- est_mean_bound(v_A[, 1], tau0 = tau0_hat, 
-                           sigma = sigma_y_t_hat, A = A_hat, GaussianT = T)
-max_length <- max_bound[3] - max_bound[2]
-
-# Random Test #
-test_max <- NULL
-for (i in 1:1000) {
-  t_test <- rstiefel::rustiefel(10, 1)
-  bound_temp <- est_mean_bound(t_test, tau0 = tau0_hat, 
-                               sigma = sigma_y_t_hat, A = A_hat, GaussianT = T)
-  length_temp <- bound_temp[3] - bound_temp[2]
-  if (length_temp > max_length) test_max <- rbind(test_max, t_test)
-  
-}
-test_max  ## the result is NULL
-
-
-### theoretically ####
-coef_mu_u_t = t(B)%*%solve(B%*%t(B) + sigma2_t*diag(k))
-Sigma_u_t = diag(s) - t(B)%*%solve(B%*%t(B) + sigma2_t*diag(k))%*%B
-eigen_Sigma = eigen(Sigma_u_t)
-Q = eigen_Sigma$vectors
-D = eigen_Sigma$values
-A <- Q %*% diag(D^{-1/2}) %*% t(Q) %*% coef_mu_u_t
-svd(A)$u ## eigenvectors of Sigma_u_t
-svd(A)$d
-
-sigma2_y_t <- t(gamma) %*% Sigma_u_t %*% gamma + sigma2_y
-
-
-
-svd(B)
-
-eigen(Sigma_u_t)$vectors
-eigen(Sigma_u_t)$values
-
-svd(coef_mu_u_t)$u
-svd(coef_mu_u_t)$v
-
-
-coef_mu_u_t %*% svd(A)$v[, 1] ## mu_u_t
-eigen(Sigma_u_t)$vectors[, 3] ## gamma
-svd(B)$v[, 1]
-
-coef_mu_u_t %*% svd(A)$v[, 1] / eigen(Sigma_u_t)$vectors[, 3] ## colinear
-## gamma is colinear with the eigenvector of Sigma_u_t corresponding to smallest eigenvalues
-## least variance in U that cannot be explained by U, most certain about U given T
-## gamma is coefficient of U in the outcome model
-
-
-###############################################################################
-## chose t to be the svd(B)$u[, 1]
-## identification when t = null(svd(B)$u)
-
-
-
-
-
-
-
-
-
-
+# ggsave("udist.pdf", plot = plot_max + plot_min, width = 150, height = 100, units = "mm")
 
