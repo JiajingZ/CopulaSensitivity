@@ -150,7 +150,7 @@ plot_nonlinearYT_ate <- tibble(SR1=ate_sens_p1[,'mean'],
   theme_bw(base_size = 13) + 
   theme(plot.title = element_text(hjust = 0.5),
         legend.text.align = 0)
-print(plot_nonlinearYT_simple_mean)
+print(plot_nonlinearYT_ate)
 ggsave("plot_nonlinearYT_ate.pdf", plot = plot_nonlinearYT_ate,
        width = 150, height = 100, units = "mm", path = "simulation/GaussianT_nonlinearYT")
 
