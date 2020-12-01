@@ -15,4 +15,4 @@ CopulaSensitivity includes the R codes for ….. , which is organized as
     effects settings in section 6.2.
 
   - `movie_analysis` includes the reanalysis of the actor case study in
-    section 7
+    section 7.
