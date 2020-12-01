@@ -36,8 +36,6 @@ extract_B <- function(C, nP = NA) {
                 coef_mu_u_zt_hat = coef_mu_u_zt_hat))
   } else { cat("Error: unreasonable num. of principals \n") }
 }
-# making sense to check sigma_zt and Sigma_Zt, but not B
-# B is not unique
 
 ############################################################
 ############################################################
