@@ -127,10 +127,38 @@ plot(gamma_seq, rr_sens_seq[2,], type = "l", ylab = "RR", xlab =expression(gamma
 plot(gamma_seq, rr_sens_seq[3,], type = "l", ylab = "RR", xlab =expression(gamma), main = expression(RR[paste(e[3],",","0" )]))
 plot(gamma_seq, rr_sens_seq[4,], type = "l", ylab = "RR", xlab =expression(gamma), main = expression(RR[paste(e[4],",","0" )]))
 # R^2 VS RR #
-plot(R2_seq, rr_sens_seq[1,], type = "l", ylab = "RR", xlab =expression(R^2), main = expression(RR[paste(e[1],",","0" )]))
-plot(R2_seq, rr_sens_seq[2,], type = "l", ylab = "RR", xlab =expression(R^2), main = expression(RR[paste(e[2],",","0" )]))
-plot(R2_seq, rr_sens_seq[3,], type = "l", ylab = "RR", xlab =expression(R^2), main = expression(RR[paste(e[3],",","0" )]))
-plot(R2_seq, rr_sens_seq[4,], type = "l", ylab = "RR", xlab =expression(R^2), main = expression(RR[paste(e[4],",","0" )]))
+plot_r2_rr1 <- tibble(R2 = sign(gamma_seq)*R2_seq, RR = rr_sens_seq[1,]) %>%
+  ggplot(aes(x = R2, y = RR)) + 
+  geom_line() + 
+  labs(x =expression(R^2), y = expression(RR[paste(e[1],",","0" )])) +
+  theme_bw(base_size = 19) 
+plot_r2_rr1  
+
+plot_r2_rr2 <- tibble(R2 = sign(gamma_seq)*R2_seq, RR = rr_sens_seq[2,]) %>%
+  ggplot(aes(x = R2, y = RR)) + 
+  geom_line() + 
+  labs(x =expression(R^2), y = expression(RR[paste(e[2],",","0" )])) +
+  theme_bw(base_size = 19) 
+plot_r2_rr2
+
+plot_r2_rr3 <- tibble(R2 = sign(gamma_seq)*R2_seq, RR = rr_sens_seq[3,]) %>%
+  ggplot(aes(x = R2, y = RR)) + 
+  geom_line() + 
+  labs(x =expression(R^2), y = expression(RR[paste(e[3],",","0" )])) +
+  theme_bw(base_size = 19) 
+plot_r2_rr3 
+
+plot_r2_rr4 <- tibble(R2 = sign(gamma_seq)*R2_seq, RR = rr_sens_seq[4,]) %>%
+  ggplot(aes(x = R2, y = RR)) + 
+  geom_line() + 
+  labs(x =expression(R^2), y = expression(RR[paste(e[4],",","0" )])) +
+  theme_bw(base_size = 19) 
+plot_r2_rr4
+
+ggsave("plot_r2_rr1.pdf", plot = plot_r2_rr1, width = 110, height = 90, units = "mm")
+ggsave("plot_r2_rr2.pdf", plot = plot_r2_rr2, width = 110, height = 90, units = "mm")
+ggsave("plot_r2_rr3.pdf", plot = plot_r2_rr3, width = 110, height = 90, units = "mm")
+ggsave("plot_r2_rr4.pdf", plot = plot_r2_rr4, width = 110, height = 90, units = "mm")
 
  
 # Summarising Results --------------------------------------------------------------------------------------------
