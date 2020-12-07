@@ -184,9 +184,6 @@ plot_roc
 
 #### Scatter Plot ----------------------------------------------------------------
 
-group <- rep("null", 500)
-group[nontrivial_index] <- 'nonnull'
-
 nontrivial_index <- which(abs(tau) > 0.1)
 
 scatter_true <- tibble(index = 1:k,
