@@ -40,7 +40,7 @@ rownames(u_t_diff) <- sig_actors
 u_pca = prcomp(mu_u_t)
 
 
-# Multivariate Robustness Criteria  ----------------------------------------------------
+# Multivariate Calibration Criteria  ----------------------------------------------------
 tau_t_sig <- tau_t[sig_actors_index]
 tau_benchmark <- 0
 
@@ -65,7 +65,7 @@ cor.test(mu_u_t %*% gamma_opt, movie$log_budget) # cor = 0.2008618, p-value < 2.
 
 # Calibrating -------------------------------------------------------------------------------------------------------
 
-## Calibration with mutlivariate robustness criteria ----------------------------------------------------------------
+## Calibration with mutlivariate calibration criteria ----------------------------------------------------------------
 cal_tau_calibrated_con <- function(cast, gamma = gamma) {
   return(tau_t[cast] - u_t_diff[cast,] %*% gamma)
 }
@@ -126,11 +126,11 @@ plot_summary_con <- function(cast) {
   return(plot)
 }
 
-plot_movie_multirobust <- plot_summary_con(cast = sig_actors)
-plot_movie_multirobust
+plot_movie_multicali <- plot_summary_con(cast = sig_actors)
+plot_movie_multicali
 
-# ggsave("plot_movie_multirobust.pdf", plot_movie_multirobust, width = 300, height=180, units = "mm")
-ggsave("plot_movie_multirobust.pdf", plot_movie_multirobust, width = 300, height=180, units = "mm", 
+# ggsave("plot_movie_multicali.pdf", plot_movie_multicali, width = 300, height=180, units = "mm")
+ggsave("plot_movie_multicali.pdf", plot_movie_multicali, width = 300, height=180, units = "mm", 
        path = "movie_analysis/Figures")
 
 
