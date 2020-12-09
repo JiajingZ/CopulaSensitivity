@@ -191,8 +191,8 @@ scatter_true <- tibble(index = 1:100,
                        effect = c(null_selected, tau[nontrivial_index]),
                        group = c(rep('null', 55), rep('nonnull', 45))) %>%
   ggplot(aes(x = index, y = effect, colour = group)) + 
-  geom_point(alpha = 0.7) + 
-  scale_colour_manual(values = c('#F39C12', '#5F6A6A')) + 
+  geom_point(size = 3) + 
+  scale_colour_manual(values = c('#C2185B', 'black')) + 
   labs(y = expression(tau), x = 'i', title = "True effects:") + 
   ylim(-18, 18) + 
   theme_bw(base_size = 19) +
@@ -204,8 +204,8 @@ scatter_naive <- tibble(index = 1:100,
                         effect = c(null_selected, tau_t[nontrivial_index]),
                         group = c(rep('null', 55), rep('nonnull', 45))) %>%
   ggplot(aes(x = index, y = effect, colour = group)) + 
-  geom_point(alpha = 0.7) + 
-  scale_colour_manual(values = c('#F39C12', '#5F6A6A')) + 
+  geom_point(size = 3) + 
+  scale_colour_manual(values = c('#C2185B', 'black')) + 
   labs(y = expression(tau), x = 'i', title=paste0("Uncalibrated effects (RMSE = ", rmse_naive, "):")) + 
   ylim(-18, 18) + 
   theme_bw(base_size = 19) +
@@ -218,8 +218,8 @@ scatter_cali <- tibble(index = 1:100,
                        effect = c(null_selected, tau_cali[nontrivial_index]),
                        group = c(rep('null', 55), rep('nonnull', 45))) %>%
   ggplot(aes(x = index, y = effect, colour = group)) + 
-  scale_colour_manual(values = c('#F39C12', '#5F6A6A')) + 
-  geom_point(alpha = 0.7) + 
+  scale_colour_manual(values = c('#C2185B', 'black')) + 
+  geom_point(size = 3) + 
   labs(y = expression(tau), x = 'i', title= paste0("Calibrated effects (RMSE = ", rmse_cali, "):")) + 
   ylim(-18, 18) + 
   theme_bw(base_size = 19)  + 
