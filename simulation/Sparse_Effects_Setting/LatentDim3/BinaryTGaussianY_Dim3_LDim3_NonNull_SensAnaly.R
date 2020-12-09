@@ -184,17 +184,15 @@ plot_roc
 
 #### Scatter Plot ----------------------------------------------------------------
 
-group <- rep("null", 500)
-group[nontrivial_index] <- 'nonnull'
-
 nontrivial_index <- which(abs(tau) > 0.1)
 
-scatter_true <- tibble(index = 1:k,
-                       effect = c(tau[-nontrivial_index], tau[nontrivial_index]),
-                       group = c(rep('null', 455), rep('nonnull', 45))) %>%
+null_selected <- (tau[-nontrivial_index])[sample(1:455, size = 55, replace = FALSE)]
+scatter_true <- tibble(index = 1:100,
+                       effect = c(null_selected, tau[nontrivial_index]),
+                       group = c(rep('null', 55), rep('nonnull', 45))) %>%
   ggplot(aes(x = index, y = effect, colour = group)) + 
-  geom_point(alpha = 0.7) + 
-  scale_colour_manual(values = c('#F39C12', '#5F6A6A')) + 
+  geom_point(size = 3) + 
+  scale_colour_manual(values = c('#C2185B', 'black')) + 
   labs(y = expression(tau), x = 'i', title = "True effects:") + 
   ylim(-18, 18) + 
   theme_bw(base_size = 19) +
@@ -202,12 +200,12 @@ scatter_true <- tibble(index = 1:k,
 # theme(plot.title = element_text(hjust = 0.5))
 
 (rmse_naive <- sqrt(mean((tau_t - tau)^2)) %>% round(digits = 2))
-scatter_naive <- tibble(index = 1:k,
-                        effect = c(tau_t[-nontrivial_index], tau_t[nontrivial_index]),
-                        group = c(rep('null', 455), rep('nonnull', 45))) %>%
+scatter_naive <- tibble(index = 1:100,
+                        effect = c(null_selected, tau_t[nontrivial_index]),
+                        group = c(rep('null', 55), rep('nonnull', 45))) %>%
   ggplot(aes(x = index, y = effect, colour = group)) + 
-  geom_point(alpha = 0.7) + 
-  scale_colour_manual(values = c('#F39C12', '#5F6A6A')) + 
+  geom_point(size = 3) + 
+  scale_colour_manual(values = c('#C2185B', 'black')) + 
   labs(y = expression(tau), x = 'i', title=paste0("Uncalibrated effects (RMSE = ", rmse_naive, "):")) + 
   ylim(-18, 18) + 
   theme_bw(base_size = 19) +
@@ -216,12 +214,12 @@ scatter_naive <- tibble(index = 1:k,
 
 
 (rmse_cali <- sqrt(mean((tau_cali - tau)^2)) %>% round(digits = 2))
-scatter_cali <- tibble(index = 1:k,
-                       effect = c(tau_cali[-nontrivial_index], tau_cali[nontrivial_index]),
-                       group = c(rep('null', 455), rep('nonnull', 45))) %>%
+scatter_cali <- tibble(index = 1:100,
+                       effect = c(null_selected, tau_cali[nontrivial_index]),
+                       group = c(rep('null', 55), rep('nonnull', 45))) %>%
   ggplot(aes(x = index, y = effect, colour = group)) + 
-  scale_colour_manual(values = c('#F39C12', '#5F6A6A')) + 
-  geom_point(alpha = 0.7) + 
+  scale_colour_manual(values = c('#C2185B', 'black')) + 
+  geom_point(size = 3) + 
   labs(y = expression(tau), x = 'i', title= paste0("Calibrated effects (RMSE = ", rmse_cali, "):")) + 
   ylim(-18, 18) + 
   theme_bw(base_size = 19)  + 
@@ -234,7 +232,7 @@ scatter_coef <- scatter_true/scatter_naive/scatter_cali
 scatter_coef
 
 
-# ggsave("LatentDim3/scatter_coef.pdf", plot = scatter_coef, width = 300, height = 190, units = "mm")
+ggsave("LatentDim3/scatter_coef.pdf", plot = scatter_coef, width = 300, height = 190, units = "mm")
 
 
 
