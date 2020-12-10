@@ -42,6 +42,23 @@ summary(lmfit_confound) # Multiple R-squared:  0.7989,	Adjusted R-squared:  0.79
 # Optimization ----------------------------------------------------
 ######## Calibration with Gamma ##########
 
+calibration_opt <- function(objective, init=rep(0, latent_dim), iters=1000) {
+  obj_min <- objective(init)
+  for (i in 1:iters) {
+    gamma0 <- init
+    solution <- optim(par = gamma0, fn = objective)
+    if (solution$value < obj_min) {
+      print("get smaller value!")
+      obj_min <- solution$value
+      gamma_int_min <- gamma0
+      gamma_opted1 <- solution$par
+    }
+    gamma_opted1 <- solution$par
+    gamma0 <- rnorm(latent_dim)*10
+  }
+  gamma_opted1
+}
+
 # Based on gamma #
 cal_tau <- function(objective, init=rep(0, latent_dim)) {
   gamma_opted1 <- calibration_opt(objective, init=init)
@@ -94,10 +111,20 @@ for(weight in gamma_weights) {
 plot(r2_vec, apply(tau_mat, 1, function(x) norm(x, type="2")))
 
 tau_ordered <- cbind(tau_mat[, setdiff(1:500, nontrivial_index)], tau_mat[, unique(nontrivial_index)])
-tau_ordered <- tau_mat[, order(abs(tau_mat[1, ]))]
-tibble(taus=as.numeric(tau_ordered), R2 = rep(r2_vec, 500), index=rep(1:500, each=nrow(tau_mat))) %>%
+tibble(taus=as.numeric(tau_mat), R2 = rep(r2_vec, 500), index=rep(1:500, each=nrow(tau_mat))) %>%
   filter(index >= 400) %>%
   ggplot() + geom_point(aes(x=index, y=taus, col=R2), size=0.2) + theme_bw() +
   scale_color_continuous_sequential(palette="ag_GrnYl", rev=TRUE) + geom_vline(aes(xintercept=450))
 
 plot(r2_vec, apply(tau_mat, 1, function(x) sqrt(mean((x - tau)^2))))
+
+tau_ordered <- cbind(tau_mat[, setdiff(1:500, nontrivial_index)], tau_mat[, unique(nontrivial_index)])
+
+median(abs(tau_ordered[1, 455:500]))
+norm(tau_ordered[1, 455:500, drop=FALSE], type='1')
+sum(abs(tau_ordered[1, 455:500]))/45
+
+
+median(abs(tau_ordered[1, 1:455]))
+sum(abs(tau_ordered[1, 1:455]))/455
+t.test(abs(tau_ordered[1, 455:500]), abs(tau_ordered[1, 1:455]))
