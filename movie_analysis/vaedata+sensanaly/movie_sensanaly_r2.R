@@ -58,14 +58,55 @@ solution$value # objective with calibration
 objective(rep(0,ncol(mu_u_t))) # objective without calibration 
 # Check R^2 #
 R2 <- c(t(gamma_opt) %*% cov_u_t %*% gamma_opt /  sigma_y_t^2)
-R2 # 0.7375674
+R2 # 0.7376014
 
 # Compute Cor(gamma'uhat, log_budget) #
 cor.test(mu_u_t %*% gamma_opt, movie$log_budget) # cor = 0.2008618, p-value < 2.2e-16
 
-# Calibrating -------------------------------------------------------------------------------------------------------
+# Varying R^2 #
+calibration_opt <- function(objective, init=rep(0, ncol(u_t_diff)), iters=1000) {
+  obj_min <- objective(init)
+  for (i in 1:iters) {
+    gamma0 <- init
+    solution <- optim(par = gamma0, fn = objective, method = "BFGS")
+    if (solution$value < obj_min) {
+      print("got smaller value!")
+      obj_min <- solution$value
+      gamma_opted1 <- solution$par
+    }
+    gamma_opted1 <- solution$par
+    gamma0 <- ncol(u_t_diff)
+  }
+  gamma_opted1
+}
 
-## Calibration with mutlivariate calibration criteria ----------------------------------------------------------------
+cal_tau_gamma <- function(objective, init=rep(0, ncol(u_t_diff)), iters=1000) {
+  gamma_opted1 <- calibration_opt(objective, init=init, iters=iters)
+  return(list(tau_cali=(tau_t_sig - u_t_diff %*% gamma_opted1), gamma_opt=gamma_opted1))
+}
+
+penalty_weights <-  seq(0, 10, by = 0.1)
+tau_cali_mat <- matrix(NA, nrow=length(penalty_weights), ncol=length(tau_t_sig)) 
+colnames(tau_cali_mat) <- sig_actors
+gamma_opt_mat <- matrix(NA, nrow=length(penalty_weights), ncol=ncol(u_t_diff) )
+R2_vec <- numeric(length(penalty_weights))
+count <- 1
+for(weight in penalty_weights) {
+  results <- cal_tau_gamma(function (g) {
+    tau_cali <- tau_t_sig - u_t_diff %*% g
+    norm(tau_cali, type = "2") + weight * t(g) %*% cov_u_t %*% g / sigma_y_t^2 ## penalizing R^2
+  }, init = u_pca$rotation[,1] , iters=1)
+  
+  tau_cali_mat[count, ]  <- results$tau_cali
+  gamma_opt_mat[count, ] <- results$gamma_opt
+  R2_vec[count]  <- (t(results$gamma_opt) %*% cov_u_t %*% results$gamma_opt) / sigma_y_t^2
+  count <- count + 1
+}
+
+plot(R2_vec, apply(tau_cali_mat, 1, norm, type = "2"), type = "l", 
+     ylab = expression(paste("||",tau,"||")[2]), xlab = expression(R[paste(Y,'~',U,'|',T)]^2))
+############################### Calibration #############################-#############################
+## Calibration with mutlivariate calibration criteria ------------------------------------------------------
 cal_tau_calibrated_con <- function(cast, gamma = gamma) {
   return(tau_t[cast] - u_t_diff[cast,] %*% gamma)
 }
@@ -94,7 +135,9 @@ sum((diff > 0) & (diff*diff_cali > 0)) / sum(diff > 0)
 
 # ntau 
 ntau_obs_df <- tau_t_sig * (n_movie$x)[sig_actors_index]
-ntau_sens_p_con <- tau_sens_p_con * (n_movie$x)[sig_actors_index]
+ntau_cali74 <- tau_cali_mat[1,] * (n_movie$x)[sig_actors_index]
+ntau_cali30 <- tau_cali_mat[16,] * (n_movie$x)[sig_actors_index]
+ntau_cali10 <- tau_cali_mat[76,] * (n_movie$x)[sig_actors_index]
 
 plot_summary_con <- function(cast) {
   k = length(cast)
@@ -102,20 +145,27 @@ plot_summary_con <- function(cast) {
   bound_df <- tibble(x1 = 2*(1:k),
                      y1 = ntau_obs_df[cast],
                      x2 = 2*(1:k),
-                     y2 = ntau_sens_p_con[cast])
-  mean_ig_df <- tibble(mean_0 = ntau_obs_df[cast],
-                       mean_p = ntau_sens_p_con[cast],
+                     y2 = ntau_cali74[cast])
+  mean_ig_df <- tibble(uncali = ntau_obs_df[cast],
+                       cali74 = ntau_cali74[cast],
+                       cali30 = ntau_cali30[cast],
+                       cali10 = ntau_cali10[cast],
                        case = 2*(1:k)) %>% 
     gather(key = "Type", value = "est", - case)
+  mean_ig_df$Type = factor(mean_ig_df$Type, levels = c("uncali", "cali10", "cali30","cali74"),
+                           labels = c("uncali", "cali10", "cali30","cali74"))
   plot = ggplot() + 
-    ungeviz::geom_hpline(data = mean_ig_df, aes(x = case, y = est, col = Type), width = 0.6, size = 1.5)  +
-    geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2),
-                 arrow = arrow(length = unit(0.2, "cm"))) +
+    ungeviz::geom_hpline(data = mean_ig_df, aes(x = case, y = est, col = Type), width = 0.8, size = 1.5)  +
+    # geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2),
+    #              arrow = arrow(length = unit(0.2, "cm"))) +
     geom_hline(yintercept=tau_benchmark, linetype = "dashed") + 
-    scale_colour_manual(name = "",
-                        values = divergingx_hcl(5,palette = "Zissou 1")[c(1,5)],
-                        labels = c('uncalibrated', "calibrated")) + 
-                                   # expression('calibrated: '~gamma~ '=' ~gamma[1]))) +
+    scale_colour_manual(name = expression(R[paste(Y,'~',U,'|',T)]^2~":"),
+                        values = c("#3B99B1", "#7CBA96", "#FFC300", "#F5191C"),
+                          # divergingx_hcl(5, palette = "Zissou 1")[c(1, 2, 3, 5)],
+                        labels = c("0 %",
+                                   paste0(round(R2_vec[76]*100, digits = 0), "%"),
+                                   paste0(round(R2_vec[16]*100, digits = 0), "%"),
+                                   paste0(round(R2_vec[1]*100, digits = 0), "%"))) + 
     scale_x_continuous("Actor j", breaks = 2*(1:length(cast)), labels = gsub('.', ' ', x = cast, fixed =TRUE)) + 
     labs(y = expression(eta[j])) +
     theme_bw(base_size = 15) + 
@@ -126,12 +176,12 @@ plot_summary_con <- function(cast) {
   return(plot)
 }
 
-plot_movie_multicali <- plot_summary_con(cast = sig_actors)
-plot_movie_multicali
+plot_movie_multicali_r2 <- plot_summary_con(cast = sig_actors)
+plot_movie_multicali_r2
 
-# ggsave("plot_movie_multicali.pdf", plot_movie_multicali, width = 300, height=180, units = "mm")
-# ggsave("plot_movie_multicali.pdf", plot_movie_multicali, width = 300, height=180, units = "mm", 
-#        path = "movie_analysis/Figures")
+# ggsave("plot_movie_multicali_r2.pdf", plot_movie_multicali_r2, width = 300, height=180, units = "mm")
+ggsave("plot_movie_multicali_r2.pdf", plot_movie_multicali_r2, width = 300, height=180, units = "mm",
+       path = "movie_analysis/Figures")
 
 
 ## Calibration, worst case --------------------------------------------------------------------------------------------------
@@ -143,7 +193,7 @@ cal_tau_calibrated <- function(cast, S = 1, R2 = 0) {
 
 R2_seq <- seq(0.2,0.5, by=0.1)
 
-cal_ntau_sens <- function(R2) {
+cal_tau_sens <- function(R2) {
   ntau_sens_p <- sapply(sig_actors, cal_tau_calibrated, S = 1, R2 = R2) * (n_movie$x)[sig_actors_index]
   ntau_sens_n <- sapply(sig_actors, cal_tau_calibrated, S = -1, R2 = R2) * (n_movie$x)[sig_actors_index]
   result <- cbind(ntau_sens_p, ntau_sens_n)

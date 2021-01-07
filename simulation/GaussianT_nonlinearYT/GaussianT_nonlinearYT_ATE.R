@@ -136,18 +136,18 @@ plot_nonlinearYT_ate <- tibble(SR1=ate_sens_p1[,'mean'],
   geom_point(data = true_df, aes(x = case, y = true, shape = group), size = 2) + 
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.5) +
-  scale_shape_manual(name = "True", values = 8, labels = "") + 
+  scale_shape_manual(name = "True Effect", values = 8, labels = "") + 
   scale_colour_manual(name = "Calibrated",
                       values = c(divergingx_hcl(7,palette = "Zissou 1")[c(7,4,1)]),
-                      labels = c(expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, S = -1'),
+                      labels = c(expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, upper'),
                                  expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 0'),
-                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, S = 1'))) +
+                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, lower'))) +
   labs(title = bquote(PATE[paste(t[1], ",", t[2])]~"for Gaussian Outcome"), 
        y = expression('Causal Effect'), x = 'i') + 
   xlim(0.9, 4.4) + 
   annotate(geom = "text", x = 1:4 + 0.3, y = c(ate_sens_0[,'mean']), size = 3,
           label = c('0%', 'robust', 'robust', '8.95%'))+
-  theme_bw(base_size = 13) + 
+  theme_bw(base_size = 15) + 
   theme(plot.title = element_text(hjust = 0.5),
         legend.text.align = 0)
 print(plot_nonlinearYT_ate)

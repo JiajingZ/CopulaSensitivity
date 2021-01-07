@@ -74,8 +74,8 @@ cal_y_mean_calibrated_algm1 <- function(i) {
   t <- rbind(t_choice, t2)[i,]
   mu_i <- (gamma/sigma_ytilde_t) * (as.matrix(tr) %*% t(coef_mu_u_t) - c(coef_mu_u_t %*% t)) %>% as.numeric()
   ytilde_samples <-rnorm(n = nrow(tr)*nsim, mean = mu_i, sd = 1)
-  mu_y_t <- y_prob_obs[i]
-  y_samples <- ifelse(pnorm(ytilde_samples) > 1-mu_y_t, 1, 0)
+  mu_y_t <- y_mean_obs[i]
+  y_samples <- ifelse(pnorm(ytilde_samples) > 1 - mu_y_t, 1, 0)
   return(mean(y_samples))
 }
 mean_sens_algm <- sapply(1:5, cal_y_mean_calibrated_algm1)

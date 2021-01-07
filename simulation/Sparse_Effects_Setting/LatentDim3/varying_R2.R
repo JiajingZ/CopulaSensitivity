@@ -111,10 +111,11 @@ for(weight in gamma_weights) {
 plot(r2_vec, apply(tau_mat, 1, function(x) norm(x, type="2")))
 
 tau_ordered <- cbind(tau_mat[, setdiff(1:500, nontrivial_index)], tau_mat[, unique(nontrivial_index)])
+
 tibble(taus=as.numeric(tau_mat), R2 = rep(r2_vec, 500), index=rep(1:500, each=nrow(tau_mat))) %>%
   filter(index >= 400) %>%
   ggplot() + geom_point(aes(x=index, y=taus, col=R2), size=0.2) + theme_bw() +
-  scale_color_continuous_sequential(palette="ag_GrnYl", rev=TRUE) + geom_vline(aes(xintercept=450))
+  scale_color_continuous_sequential(palette="ag_GrnYl", rev=TRUE) + geom_vline(aes(xintercept=455))
 
 plot(r2_vec, apply(tau_mat, 1, function(x) sqrt(mean((x - tau)^2))))
 

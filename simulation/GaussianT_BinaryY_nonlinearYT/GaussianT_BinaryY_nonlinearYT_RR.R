@@ -155,10 +155,10 @@ plot_r2_rr4 <- tibble(R2 = sign(gamma_seq)*R2_seq, RR = rr_sens_seq[4,]) %>%
   theme_bw(base_size = 19) 
 plot_r2_rr4
 
-ggsave("plot_r2_rr1.pdf", plot = plot_r2_rr1, width = 110, height = 90, units = "mm")
-ggsave("plot_r2_rr2.pdf", plot = plot_r2_rr2, width = 110, height = 90, units = "mm")
-ggsave("plot_r2_rr3.pdf", plot = plot_r2_rr3, width = 110, height = 90, units = "mm")
-ggsave("plot_r2_rr4.pdf", plot = plot_r2_rr4, width = 110, height = 90, units = "mm")
+# ggsave("plot_r2_rr1.pdf", plot = plot_r2_rr1, width = 110, height = 90, units = "mm")
+# ggsave("plot_r2_rr2.pdf", plot = plot_r2_rr2, width = 110, height = 90, units = "mm")
+# ggsave("plot_r2_rr3.pdf", plot = plot_r2_rr3, width = 110, height = 90, units = "mm")
+# ggsave("plot_r2_rr4.pdf", plot = plot_r2_rr4, width = 110, height = 90, units = "mm")
 
  
 # Summarising Results --------------------------------------------------------------------------------------------
@@ -174,20 +174,20 @@ true_df <- tibble(case = 1:4,
                   group = rep(1, 4))
 true_df$group = factor(true_df$group)
 
-summarise_df <- tibble(upr=rr_sens_bound[,2],
-                       obs=rr_obs_df[,'mean'],
-                       lwr=rr_sens_bound[,1],
+summarise_df <- tibble(Upper=rr_sens_bound[,2],
+                       Naive=rr_obs_df[,'mean'],
+                       Lower=rr_sens_bound[,1],
                        case=1:nrow(t_choice)) %>% 
   gather(key = "Type", value = "effect", - case) 
 summarise_df$Type <- factor(summarise_df$Type, 
-                            levels = c('upr', 'obs', 'lwr'))
+                            levels = c('Upper', 'Naive', 'Lower'))
 
 plot_nonlinearYT_binaryY_RR <-  ggplot(summarise_df) + 
   ungeviz::geom_hpline(aes(x = case, y = effect, col = Type), width = 0.2, size = 1)  +
   geom_hline(yintercept = 1, linetype = "dashed") +
   geom_point(data = true_df, aes(x = case, y = true, shape = group), size = 2) + 
   geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.5) +
-  scale_shape_manual(name = "True", values = 8, labels = "") + 
+  scale_shape_manual(name = "True Effect", values = 8, labels = "") + 
   scale_colour_manual(name = "Calibrated",
                       values = c("#F5191C", "#EACB2B", "#3B99B1")) +
   guides(colour = guide_legend(order = 2), 
@@ -197,12 +197,12 @@ plot_nonlinearYT_binaryY_RR <-  ggplot(summarise_df) +
        y = expression('Causal Effect'), x = 'i') + 
   annotate(geom = "text", x = 1:4 + 0.3, y = c(rr_obs_df[,'mean']), size = 3,
            label = c('0.01%', 'robust', 'robust', '15.16%'))+
-  theme_bw(base_size = 13) + 
+  theme_bw(base_size = 15) + 
   theme(plot.title = element_text(hjust = 0.5),
         legend.text.align = 0)
 print(plot_nonlinearYT_binaryY_RR)
 ggsave("plot_nonlinearYT_binaryY_RR.pdf", plot = plot_nonlinearYT_binaryY_RR,
-       width = 130, height = 100, units = "mm", path = "simulation/GaussianT_BinaryY_nonlinearYT")
+       width = 137, height = 100, units = "mm", path = "simulation/GaussianT_BinaryY_nonlinearYT")
 
 
 
