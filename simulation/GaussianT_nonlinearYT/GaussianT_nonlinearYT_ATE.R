@@ -18,7 +18,7 @@ sigma2_y <- 1
 tau_l <- c(3, -1, 1, -0.06)
 tau_nl <- -4
 coef_true <- c(tau_l, tau_nl)
-g_yt <- function(t) { # t is n by k matrix 
+g_yt <- function(t) { # t is n by k matrix
   t[,3] = ifelse(t[,3] > 0, t[,3], 0.7*t[,3])
   t %*% tau_l + t[,1]^2 * tau_nl
 }
@@ -46,7 +46,7 @@ effect_true
 
 # true treatment effect bias #
 effect_bias <- c(t_choice %*% t(coef_mu_u_t) %*% gamma)
-effect_bias 
+effect_bias
 
 # true observed treatment effect #
 (effect_obs <- effect_true + effect_bias)
@@ -85,74 +85,62 @@ cbind(ate_obs_df, effect_obs)
 ate_obs_df[2,1] <- mean(ate_obs_npost[2,1:40])
 
 # Sensitivity Analysis ---------------------------------------------------------------
-cal_ate_calibrated <- function(obs_ate_dt, S = 1, R2) {
-  obs_ate <- obs_ate_dt[1:3]
-  dt <- obs_ate_dt[-(1:3)]
-  bias <- S*sqrt(R2)*sigma_y_t_hat*sqrt(sum((coef_mu_u_t_hat %*% dt/sigma_u_t_hat)^2))
-  obs_ate - bias
-}
+ate_cali_mat <- CopSens::gcalibrate(y, tr, t1 = t_choice, t2 = matrix(0, ncol = k, nrow = k),
+                                    calitype = "worstcase", mu_y_dt = as.matrix(ate_obs_df[, 'mean']),
+                                    sigma_y_t = sigma_y_t_hat,
+                                    mu_u_dt = t_choice %*% t(coef_mu_u_t_hat),
+                                    cov_u_t = as.matrix(sigma_u_t_hat^2), R2 = 1)$est_df
 
-ate_sens_p1 <- t(apply(cbind(ate_obs_df, t_choice), 1, cal_ate_calibrated, S = 1, R2 = 1))
-ate_sens_0 <- t(apply(cbind(ate_obs_df, t_choice), 1, cal_ate_calibrated, R2 = 0))
-ate_sens_n1 <- t(apply(cbind(ate_obs_df, t_choice), 1, cal_ate_calibrated, S = -1, R2 = 1))
 
-# robustness value #
-cal_RV <- function(estimate, dt, type = c('mean', 'limt')) {
-  if (type=='mean') {
-    df <- estimate
-  } else if (type=='limit') {
-    df <- ifelse(estimate[,1]*estimate[,2]>0, apply(abs(estimate),1,min), 0)
-  } else {
-    stop('Please choose a valid type.')
-  }
-  u_t_diff <- dt %*% t(coef_mu_u_t_hat)
-  (df*sigma_u_t_hat/(sigma_y_t_hat*u_t_diff))^2
-}
+# robustness value when ATE = 0 #
+RV_mean <- CopSens::cal_rv(y, tr, t1 = t_choice, t2 = matrix(0, ncol = k, nrow = k),
+                           mu_y_dt = as.matrix(ate_obs_df[, 'mean']), sigma_y_t = sigma_y_t_hat,
+                           mu_u_dt = t_choice %*% t(coef_mu_u_t_hat), cov_u_t = as.matrix(sigma_u_t_hat^2))
+# cal RV_limit for significant ones #
+RV_limit <- CopSens::cal_rv(y, tr, t1 = t_choice, t2 = matrix(0, ncol = k, nrow = k),
+                            mu_y_dt = as.matrix(apply(abs(ate_obs_df[, 2:3]), 1, min)), sigma_y_t = sigma_y_t_hat,
+                            mu_u_dt = t_choice %*% t(coef_mu_u_t_hat), cov_u_t = as.matrix(sigma_u_t_hat^2))[-1]
 
-RV_mean <- cal_RV(estimate = ate_obs_df[,1], dt = t_choice, type = 'mean') %>% round(digits = 4)
-RV_limit <- cal_RV(estimate = ate_obs_df[,2:3], dt = t_choice, type = 'limit') %>% round(digits = 4)
-
-# Summarising Results --------------------------------------------------------------------------------------------
+# Summarizing Results --------------------------------------------------------------------------------------------
 # plot #
 bound_df <- tibble(x1 = 1:4,
-                   y1 = ate_sens_p1[,'mean'],
+                   y1 = ate_cali_mat[,'R2_1_lwr'],
                    x2 = 1:4,
-                   y2 = ate_sens_n1[,'mean'])
-true=c(effect_true)
+                   y2 = ate_cali_mat[,'R2_1_upr'])
 
 true_df <- tibble(case = 1:nrow(t_choice),
-                 true=c(effect_true),
-                 group = rep(8, nrow(t_choice)))
-true_df$group = factor(true_df$group)
+                  true=c(effect_true),
+                  group = rep(8, nrow(t_choice)))
+true_df$group <- factor(true_df$group)
 
 
-plot_nonlinearYT_ate <- tibble(SR1=ate_sens_p1[,'mean'],
-       SR0=ate_sens_0[,'mean'],
-       SR_1=ate_sens_n1[,'mean'],
-       case=1:nrow(t_choice)) %>% 
+plot_nonlinearYT_ate <- tibble(SR1 = ate_cali_mat[,'R2_1_lwr'],
+       SR0 = ate_cali_mat[,'R2_0'],
+       SR_1 = ate_cali_mat[,'R2_1_upr'],
+       case=1:nrow(t_choice)) %>%
   gather(key = "Type", value = "effect", - case) %>%
-  ggplot() + 
+  ggplot() +
   ungeviz::geom_hpline(aes(x = case, y = effect, col = Type), width = 0.2, size = 1)  +
-  geom_point(data = true_df, aes(x = case, y = true, shape = group), size = 2) + 
+  geom_point(data = true_df, aes(x = case, y = true, shape = group), size = 2) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.5) +
-  scale_shape_manual(name = "True Effect", values = 8, labels = "") + 
+  scale_shape_manual(name = "True Effect", values = 8, labels = "") +
   scale_colour_manual(name = "Calibrated",
                       values = c(divergingx_hcl(7,palette = "Zissou 1")[c(7,4,1)]),
                       labels = c(expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, upper'),
                                  expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 0'),
                                  expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, lower'))) +
-  labs(title = bquote(PATE[paste(t[1], ",", t[2])]~"for Gaussian Outcome"), 
-       y = expression('Causal Effect'), x = 'i') + 
-  xlim(0.9, 4.4) + 
-  annotate(geom = "text", x = 1:4 + 0.3, y = c(ate_sens_0[,'mean']), size = 3,
+  labs(title = bquote(PATE[paste(t[1], ",", t[2])]~"for Gaussian Outcome"),
+       y = expression('Causal Effect'), x = 'i') +
+  xlim(0.9, 4.4) +
+  annotate(geom = "text", x = 1:4 + 0.3, y = c(ate_cali_mat[,'R2_0']), size = 3,
           label = c('0%', 'robust', 'robust', '8.95%'))+
-  theme_bw(base_size = 15) + 
+  theme_bw(base_size = 15) +
   theme(plot.title = element_text(hjust = 0.5),
         legend.text.align = 0)
 print(plot_nonlinearYT_ate)
-ggsave("plot_nonlinearYT_ate.pdf", plot = plot_nonlinearYT_ate,
-       width = 150, height = 100, units = "mm", path = "simulation/GaussianT_nonlinearYT")
+# ggsave("plot_nonlinearYT_ate.pdf", plot = plot_nonlinearYT_ate,
+#        width = 150, height = 100, units = "mm", path = "simulation/GaussianT_nonlinearYT")
 
 
 

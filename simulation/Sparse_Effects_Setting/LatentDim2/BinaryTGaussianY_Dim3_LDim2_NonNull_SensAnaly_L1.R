@@ -7,12 +7,13 @@ setwd("simulation/Sparse_Effects_Setting")
 # import data #
 y <- read.csv('y.csv')$X0
 tr <- read.csv('tr.csv') %>% as.matrix()
+k <- ncol(tr)
 tau <- read.csv('tau.csv')$X0
 nontrivial_index <- read.csv('nontrivial_effect_index.csv')$X0 +1
 
 # fit observed outcome model --------------------------------------------------------------------------------------------------------
 ## y ~ tr ##
-lmfit_y_t <- lm(y ~ tr) 
+lmfit_y_t <- lm(y ~ tr)
 tau_t <- coef(lmfit_y_t)[-1]
 yhat <- predict(lmfit_y_t)
 sigma_y_t <- sigma(lmfit_y_t)
@@ -37,73 +38,46 @@ lmfit_confound <- lm(y_confound ~ mu_u_t)
 summary(lmfit_confound) # Multiple R-squared:  0.5582,	Adjusted R-squared:  0.5582
 
 
-# Optimization ----------------------------------------------------
-######## Calibration with Gamma ##########
-objective <- function(gamma_opt){
-  tau_cali <- tau_t - u_t_diff %*% gamma_opt
-  norm(tau_cali, type = "1") ## L1 norm
-  # mad(tau_cali) ## MAD
-}
+# Calibration ----------------------------------------------------
+cali_results_R1 <- CopSens::gcalibrate(y, tr, t1 = diag(k),
+                                      t2 = matrix(0, ncol = k, nrow = k),
+                                      calitype ="multicali",
+                                      mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
+                                      mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
+                                      penalty_weight = 0,
+                                      n_iter = 1000, normtype = "L1")
+(R2 <- round(cali_results_R1$R2, digits = 2))
+tau_cali <- cali_results_R1$est_df[,2]
 
-# optimize #
-obj_min <- objective(rep(0, latent_dim))
-for (i in 1:1000) {
-  gamma0 <- rnorm(latent_dim)*10
-  solution <- optim(par = gamma0, fn = objective)
-  if (solution$value < obj_min) {
-    print("got smaller value!")
-    obj_min <- solution$value
-    gamma_int_min <- gamma0
-    gamma_opted1 <- solution$par
-  }
-}
-objective(rep(0, latent_dim)) 
-obj_min 
-gamma_int_min 
-gamma_opted1
-gamma_opted1 <- c(104.62134, -82.17413)
-## R^2 ##
-(R2 <- c(t(gamma_opted1) %*% cov_u_t %*% gamma_opted1 / sigma_y_t^2) %>% 
-    round(digits = 2))
-
-
-# Calibrating ----------------------------------------------------
-
-# Based on gamma #
-cal_tau_calibrated_gamma <- function(gamma = gamma) {
-  return(tau_t - u_t_diff %*% gamma)
-} 
-
-tau_cali <- cal_tau_calibrated_gamma(gamma = gamma_opted1)
-
-
-## Checking the norm of estimates 
+## Checking the norm of estimates
 norm(as.matrix(tau), type = "1")
 norm(as.matrix(tau_t), type = "1")
-norm(tau_cali, type = "1") 
+norm(as.matrix(tau_cali), type = "1")
 
-## Checking whether TEs shrink or not after calibration
+
+## Checking whether ATEs shrink or not after calibration
 sum(tau_t^2/length(tau_t))
 sum(tau_cali^2/length(tau_cali))
 
-## checking shinking direction
+
+## checking shrinking direction
 diff <- tau  - tau_t
 diff_cali <- tau_cali - tau_t
-sum(diff*diff_cali > 0) # 498
+sum(diff*diff_cali > 0)
 sum(diff*diff_cali > 0) / ncol(tr)
 
-# how many are expected to decrease 
+# how many are expected to decrease
 sum(diff < 0) # 233
-# among decrese, how many calibrated are aligned 
-sum((diff < 0) & (diff*diff_cali > 0)) 
-sum((diff < 0) & (diff*diff_cali > 0)) / sum(diff < 0)  
-# how many are expected to increase 
+# among decrease, how many calibrated are aligned
+sum((diff < 0) & (diff*diff_cali > 0))
+sum((diff < 0) & (diff*diff_cali > 0)) / sum(diff < 0)
+# how many are expected to increase
 sum(diff > 0) # 267
-# among increse, how many calibrated are aligned 
-sum((diff > 0) & (diff*diff_cali > 0)) 
-sum((diff > 0) & (diff*diff_cali > 0)) / sum(diff > 0) 
+# among increase, how many calibrated are aligned
+sum((diff > 0) & (diff*diff_cali > 0))
+sum((diff > 0) & (diff*diff_cali > 0)) / sum(diff > 0)
 
-mean(abs(tau_t)) - mean(abs(tau_cali)) 
+mean(abs(tau_t)) - mean(abs(tau_cali))
 mean(abs(tau_t[nontrivial_index])) - mean(abs(tau_cali[nontrivial_index]))
 mean(abs(tau_t[-nontrivial_index])) - mean(abs(tau_cali[-nontrivial_index]))
 
@@ -156,73 +130,10 @@ for (k in seq(1, 500, by = 1)) {
   # PPV = true_positive /  predicted_positive #
   ppv_cali <- c(ppv_cali, mean(positive_index_cali %in% positive_index))
 }
-
-plot_roc <- tibble(TPR = c(tpr_naive, tpr_cali),
-                   FPR = c(fpr_naive, fpr_cali),
-                   Type = rep(c('uncalibrated', 'calibrated'), each = 500)) %>%
-  ggplot() + 
-  geom_line(aes(x = FPR, y = TPR, colour = Type)) +
-  scale_colour_manual(name = "",
-                      values = divergingx_hcl(5,palette = "Zissou 1")[c(5,1)]) +
-  labs(x = "FPR", y = "TPR", title = paste0("ROC (Latent Dim. = ", latent_dim, ')')) + 
-  theme_bw(base_size = 12) + 
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size=12),
-        legend.text = element_text(size=11))
-
-(auc_naive <- DescTools::AUC(x = fpr_naive, y = tpr_naive)) # 0.54
-(auc_cali <- DescTools::AUC(x = fpr_cali, y = tpr_cali)) # 0.61
 # write.csv(fpr_cali, row.names = F, file = 'LatentDim2/fpr_cali_dim2_L1.csv')
 # write.csv(tpr_cali, row.names = F, file = 'LatentDim2/tpr_cali_dim2_L1.csv')
 
-plot_roc
-#### Scatter Plot ----------------------------------------------------------------
 
-group <- rep("null", k)
-group[nontrivial_index] <- 'nonnull'
-
-nontrivial_index <- which(abs(tau) > 0.1)
-
-scatter_true <- tibble(index = 1:k,
-                       effect = c(tau[-nontrivial_index], tau[nontrivial_index]),
-                       group = c(rep('null', 455), rep('nonnull', 45))) %>%
-  ggplot(aes(x = index, y = effect, colour = group)) + 
-  geom_point(alpha = 0.7) + 
-  labs(y = expression(tau), x = 'i', title = "True effects:") + 
-  ylim(-18, 18) + 
-  theme_bw(base_size = 19) +
-  theme(plot.title = element_text(size=19))
-# theme(plot.title = element_text(hjust = 0.5))
-
-(rmse_naive <- sqrt(mean((tau_t - tau)^2)) %>% round(digits = 2))
-scatter_naive <- tibble(index = 1:k,
-                        effect = c(tau_t[-nontrivial_index], tau_t[nontrivial_index]),
-                        group = c(rep('null', 455), rep('nonnull', 45))) %>%
-  ggplot(aes(x = index, y = effect, colour = group)) + 
-  geom_point(alpha = 0.7) + 
-  labs(y = expression(tau), x = 'i', title=paste0("Uncalibrated effects (RMSE = ", rmse_naive, "):")) + 
-  ylim(-18, 18) + 
-  theme_bw(base_size = 19) +
-  theme(plot.title = element_text(size=19))
-# theme(plot.title = element_text(hjust = 0.5))
-
-
-(rmse_cali <- sqrt(mean((tau_cali - tau)^2)) %>% round(digits = 2))
-scatter_cali <- tibble(index = 1:k,
-                       effect = c(tau_cali[-nontrivial_index], tau_cali[nontrivial_index]),
-                       group = c(rep('null', 455), rep('nonnull', 45))) %>%
-  ggplot(aes(x = index, y = effect, colour = group)) + 
-  geom_point(alpha = 0.7) + 
-  labs(y = expression(tau), x = 'i', title= paste0("Calibrated effects (RMSE = ", rmse_cali, "):")) + 
-  ylim(-18, 18) + 
-  theme_bw(base_size = 19)  + 
-  theme(plot.title = element_text(size=19))
-# theme(plot.title = element_text(hjust = 0.5))
-
-
-scatter_coef <- scatter_true/scatter_naive/scatter_cali + 
-  plot_annotation(title = paste0("Scatter Plots for Coefficients (Latent Dim. = ", latent_dim, ')'))
-scatter_coef
 
 
 
