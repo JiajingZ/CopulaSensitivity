@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 
 # CopulaSensitivity
 
-CopulaSensitivity includes the R codes for ..... , which is organized as
+CopulaSensitivity includes replication code for “copula-based sensitivity analysis for observational multi-treatment causal inference”, which is organized as
 
 - `simulation/GaussianT_nonlinearYT` includes simulation for Gaussian outcome in section 6.1.
 
