@@ -5,16 +5,16 @@
 
 CopulaSensitivity includes replication code for “copula-based
 sensitivity analysis for observational multi-treatment causal
-inference”, which is organized as
+inference”, which is organized as follows:
 
 -   `simulation/GaussianT_nonlinearYT` includes simulation for Gaussian
-    outcome in section 6.1.
+    outcome in section 7.1.
 
 -   `simulation/GaussianT_BinaryY_nonlinearYT` includes simulation for
-    Binary outcome in section 6.1.
+    Binary outcome in section 7.1.
 
 -   `simulation/Sparse_Effects_Setting` includes simulation with sparse
-    effects settings in section 6.2.
+    effects settings in section 7.2.
 
 -   `movie_analysis` includes the reanalysis of the actor case study in
-    section 7.
+    section 8.
