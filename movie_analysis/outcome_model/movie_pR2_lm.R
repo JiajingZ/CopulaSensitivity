@@ -43,36 +43,35 @@ pR2_df$factor <- factor(pR2_df$factor, levels = pR2_df$factor)
 # Barplot for all factors ##
 pR2_plot_all <- pR2_df %>%
   ggplot() +
-  geom_bar(aes(x = factor, y = pR2), stat = "identity") +
-  # geom_hline(yintercept = 0.015, linetype = "dashed", color = "red") +
+  geom_bar(aes(x = factor, y = pR2), stat = "identity", width = 0.7) +
   theme_bw(base_size = 20) +
+  scale_y_continuous(breaks = seq(0, 0.3, by=0.1),
+                     labels = sapply(seq(0, 0.3, by=0.1)*100, paste0, "%")) +
   labs(y = expression("Partial "~R^2), x = "",
        title = expression("Partial "~R^2~" for Observed Factors"))+
   theme(plot.title = element_text(hjust = 0.5))
 print(pR2_plot_all)
+ggsave("movie_pR2_tx_lm.pdf", plot = pR2_plot_all, width = 210, height = 120, units = "mm",
+       path = "movie_analysis/Figures")
 
 
 # Barplot for factors with cast excluded ##
-pR2_plot_full <- pR2_df %>% filter(factor != "cast") %>%
+pR2_plot_x <- pR2_df %>% filter(factor != "cast") %>%
   ggplot() +
   geom_bar(aes(x = factor, y = pR2), stat = "identity") +
-  # geom_hline(yintercept = 0.015, linetype = "dashed", color = "red") +
   theme_bw(base_size = 24) +
   scale_y_continuous(breaks = seq(0, 0.3, by=0.1),
                      labels = sapply(seq(0, 0.3, by=0.1)*100, paste0, "%")) +
   labs(y = expression("Partial "~R^2), x = "",
        title = expression("Partial "~R^2~" for Observed Factors"))+
   theme(plot.title = element_text(hjust = 0.5))
-print(pR2_plot_full)
-ggsave("movie_pR2_full_lm.pdf", plot = pR2_plot_full, width = 300, height = 150, units = "mm",
-       path = "movie_analysis/Figures")
+print(pR2_plot_x)
 
 
-# Barplot for factors with cast, log_budget excluded ##
+# Barplot for factors with log_budget and cast excluded ##
 pR2_plot <- pR2_df %>% filter(factor != "log_budget" & factor != "cast") %>%
   ggplot() +
   geom_bar(aes(x = factor, y = pR2), stat = "identity") +
-  # geom_hline(yintercept = 0.015, linetype = "dashed", color = "red") +
   theme_bw(base_size = 20) +
   scale_y_continuous(breaks = seq(0, 0.03, by=0.005),
                      labels = sapply(c('0.0','0.5','1.0','1.5','2.0','2.5','3.0'), paste0, "%")) +
@@ -80,8 +79,6 @@ pR2_plot <- pR2_df %>% filter(factor != "log_budget" & factor != "cast") %>%
        title = expression("Partial "~R^2~" for Observed Factors"))+
   theme(plot.title = element_text(hjust = 0.5))
 print(pR2_plot)
-# ggsave("movie_pR2_lm.pdf", plot = pR2_plot, width = 180, height = 120, units = "mm",
-#        path = "/movie_analysis/Figures")
 
 ## Partial R^2 based on model: y ~ t, R^2_{Y ~ T_j | T_{-j}} -----------------------------------------------------------------
 lmfit_castfull <- lm(y ~ t)
@@ -98,5 +95,16 @@ cal_partial_R2_cast <- function(var) {
 }
 
 pR2_tj <- sapply(colnames(t), cal_partial_R2_cast)
-pR2_tj %>% sort(decreasing = TRUE)
+pR2_tj_movie %>% sort(decreasing = TRUE) %>% head()
+
+# write.csv(pR2_tj, row.names = T, file = 'movie_analysis/outcome_model/pR2_tj_movie.csv')
+# pR2_tj_movie <- read.csv("movie_analysis/outcome_model/pR2_tj_movie.csv", row.names = 1)
+
+
+
+
+
+
+
+
 

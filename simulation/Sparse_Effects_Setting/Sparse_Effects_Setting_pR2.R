@@ -37,5 +37,5 @@ cal_partial_R2 <- function(var) {
 pR2_tj <- sapply(colnames(tr), cal_partial_R2)
 pR2_tj %>% sort(decreasing = TRUE)
 
-# write.csv(pR2_tj, row.names = T, file = 'pR2_tj.csv')
-# pR2_tj <- read.csv("pR2_tj.csv", row.names = 1)
+# write.csv(pR2_tj, row.names = T, file = 'pR2_tj_ses.csv')
+# pR2_tj <- read.csv("pR2_tj_ses.csv", row.names = 1)
