@@ -1,8 +1,11 @@
+library(patchwork)
 library(tidyverse)
 library(knitr)
 library(kableExtra)
 library(colorspace)
 library(stringr)
+library(patchwork)
+
 
 
 movie <- read.csv("movie_analysis/movie.csv")
@@ -119,7 +122,7 @@ plot_summary_con <- function(cast) {
     #              arrow = arrow(length = unit(0.2, "cm"))) +
     geom_hline(yintercept=tau_benchmark, linetype = "dashed") +
     scale_colour_manual(name = expression(R[paste(Y,'~',U,'|',T)]^2~":"),
-                        values = c("#3B99B1", "#7CBA96", "#FFC300", "#F5191C"),
+                        values = divergingx_hcl(7,palette = "Zissou 1")[c(1,2,4,7)],
                           # divergingx_hcl(5, palette = "Zissou 1")[c(1, 2, 3, 5)],
                         labels = c("0 %",
                                    paste0(round(results_multicali_vR2$R2[76]*100, digits = 0), "%"),
@@ -127,11 +130,12 @@ plot_summary_con <- function(cast) {
                                    paste0(round(results_multicali_vR2$R2[1]*100, digits = 0), "%"))) +
     scale_x_continuous("Actor j", breaks = 2*(1:length(cast)), labels = gsub('.', ' ', x = cast, fixed =TRUE)) +
     labs(y = expression(eta[j])) +
+    annotate(geom="text", x=10.3, y=55, label="L2 minimization of effects",size = 5.6) +
     theme_bw(base_size = 15) +
     theme(plot.title = element_text(hjust = 0.5),
           axis.text.x = element_text(size = 13, angle = 75, hjust = 1),
           legend.text.align = 0,
-          legend.title = element_text(size=10))
+          legend.title = element_text(size=14))
   return(plot)
 }
 
@@ -140,7 +144,6 @@ plot_movie_multicali_r2
 
 # ggsave("plot_movie_multicali_r2.pdf", plot_movie_multicali_r2, width = 300, height=180, units = "mm",
 #        path = "movie_analysis/Figures")
-
 
 
 ## Calibration, worst case --------------------------------------------------------------------------------------------------
@@ -180,17 +183,21 @@ plot_summary <- function(cast) {
     gather(key = "Type", value = "est", - case)
   plot = ggplot() +
     ungeviz::geom_hpline(data = mean_ig_df, aes(x = case, y = est, col = Type), width = 0.6, size = 1.5)  +
+    geom_hline(yintercept=tau_benchmark, linetype = "dashed") +
     geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.5) +
     scale_colour_manual(name = expression(R[paste(tilde(Y),'~',U,'|',T)]^2~":"),
-                        values = divergingx_hcl(5,palette = "Zissou 1"),
+                        values = divergingx_hcl(7,palette = "Zissou 1")[c(1,3,4,5,6)],
                         labels = sapply(c(0,R2_seq*100), paste0, "%")) +
-    scale_x_continuous("Actor j", breaks = 2*(1:length(cast)), labels = gsub('.', ' ', x = cast, fixed =TRUE)) +
+    scale_x_continuous("", breaks = 2*(1:length(cast)), labels = gsub('.', ' ', x = cast, fixed =TRUE)) +
     labs(y = expression(eta[j])) +
+    annotate(geom="text", x=12.8, y=220, label="worst-case ignorance regions", size = 5.6) +
     theme_bw(base_size = 15) +
     theme(plot.title = element_text(hjust = 0.5),
-          axis.text.x = element_text(size = 13, angle = 75, hjust = 1),
+          # axis.text.x = element_text(size = 13, angle = 75, hjust = 1),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
           legend.text.align = 0,
-          legend.title = element_text(size=10))
+          legend.title = element_text(size=14))
   return(plot)
 }
 
@@ -200,7 +207,10 @@ plot_movie_worstcase
 # ggsave("plot_movie_worstcase.pdf", plot_movie_worstcase, width = 300, height=180, units = "mm",
 #        path = "movie_analysis/Figures")
 
-
+plot_movie_worstmulti <- plot_movie_worstcase / plot_movie_multicali_r2 & theme(plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"))
+plot_movie_worstmulti
+ggsave("plot_movie_worstmulti.pdf", plot = plot_movie_worstmulti, 
+       width = 300, height=200, units = "mm", path = "movie_analysis/Figures")
 
 # Robustness Value Table ----------------------------------------------------------------------------------------------------
 
