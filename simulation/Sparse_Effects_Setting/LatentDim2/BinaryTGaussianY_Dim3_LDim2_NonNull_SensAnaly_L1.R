@@ -102,19 +102,13 @@ tau_sort <- abs(tau) %>% sort(decreasing = T, index.return = T)
 nontrivial_index <- tau_sort$ix[1:45]
 
 ############################## ROC #########################################################################
-## By P-value ## ------------------------------------------------------------------------------
 positive_index <- order(abs(tau), decreasing = T)[1:45]
 negative_index <- order(abs(tau), decreasing = T)[46:500]
-lmfit_y_t_coef <- summary(lmfit_y_t)$coefficients
-pvalue_naive <- lmfit_y_t_coef[-1,4]
-sd_tau <- lmfit_y_t_coef[-1,2]
-tvalue_cali <- tau_cali /  sd_tau
-pvalue_cali <- 2*pt(- abs(tvalue_cali), df = lmfit_y_t$df.residual)
 
 tpr_naive = fpr_naive  = ppv_naive = tpr_cali = fpr_cali = ppv_cali = NULL
 for (k in seq(1, 500, by = 1)) {
   #### Naive ####
-  positive_index_naive <- order(pvalue_naive)[1:k]
+  positive_index_naive <- order(abs(tau_t), decreasing = TRUE)[1:k]
   # TPR  = predicted_positive/true_positive #
   tpr_naive <- c(tpr_naive, mean(positive_index %in% positive_index_naive))
   # FPR = predicted_positive/ true_negative #
@@ -122,7 +116,7 @@ for (k in seq(1, 500, by = 1)) {
   # PPV = true_positive /  predicted_positive #
   ppv_naive <- c(ppv_naive, mean(positive_index_naive %in% positive_index))
   #### Calibrated ####
-  positive_index_cali <- order(pvalue_cali)[1:k]
+  positive_index_cali <- order(abs(tau_cali), decreasing = TRUE)[1:k]
   # TPR  = predicted_positive/true_positive #
   tpr_cali <- c(tpr_cali, mean(positive_index %in% positive_index_cali))
   # FPR = predicted_positive/ true_negative
@@ -132,7 +126,6 @@ for (k in seq(1, 500, by = 1)) {
 }
 # write.csv(fpr_cali, row.names = F, file = 'LatentDim2/fpr_cali_dim2_L1.csv')
 # write.csv(tpr_cali, row.names = F, file = 'LatentDim2/tpr_cali_dim2_L1.csv')
-
 
 
 

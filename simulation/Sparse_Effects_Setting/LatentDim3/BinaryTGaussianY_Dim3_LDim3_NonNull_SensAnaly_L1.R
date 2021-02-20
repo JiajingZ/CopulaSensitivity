@@ -100,19 +100,14 @@ sum((diff*diff_cali > 0)[nontrivial_index])
 
 
 ############################## ROC #########################################################################
-## By P-value ## ------------------------------------------------------------------------------
 positive_index <- order(abs(tau), decreasing = T)[1:length(nontrivial_index)]
 negative_index <- order(abs(tau), decreasing = T)[(length(nontrivial_index)+1):500]
 lmfit_y_t_coef <- summary(lmfit_y_t)$coefficients
-pvalue_naive <- lmfit_y_t_coef[-1,4]
-sd_tau <- lmfit_y_t_coef[-1,2]
-tvalue_cali <- tau_cali /  sd_tau
-pvalue_cali <- 2*pt(- abs(tvalue_cali), df = lmfit_y_t$df.residual)
 
 tpr_naive = fpr_naive  = ppv_naive = tpr_cali = fpr_cali = ppv_cali = NULL
 for (k in seq(1, 500, by = 1)) {
   #### Naive ####
-  positive_index_naive <- order(pvalue_naive)[1:k]
+  positive_index_naive <- order(abs(tau_t), decreasing = TRUE)[1:k]
   # TPR  = predicted_positive/true_positive #
   tpr_naive <- c(tpr_naive, mean(positive_index %in% positive_index_naive))
   # FPR = predicted_positive/ true_negative #
@@ -120,7 +115,7 @@ for (k in seq(1, 500, by = 1)) {
   # PPV = true_positive /  predicted_positive #
   ppv_naive <- c(ppv_naive, mean(positive_index_naive %in% positive_index))
   #### Calibrated ####
-  positive_index_cali <- order(pvalue_cali)[1:k]
+  positive_index_cali <- order(abs(tau_cali), decreasing = TRUE)[1:k]
   # TPR  = predicted_positive/true_positive #
   tpr_cali <- c(tpr_cali, mean(positive_index %in% positive_index_cali))
   # FPR = predicted_positive/ true_negative
@@ -175,7 +170,9 @@ plot_r2_normratio
 tau_est_selected <- rbind(tau_cali_mat[c(1, 13),], tau_t)
 r2_est_selected <- c(round(100*R2_vec[c(1, 13)], digits = 0), 0) %>% as.character()
 RMSE_selected <- apply(tau_est_selected, 1, function(x) sqrt(mean((x - tau)^2))) %>% round(digits = 2)
-trivial_seleted_index <- sample(1:455, size = 55, replace = FALSE)
+trivial_index <- (1:k)[!(1:k) %in% nontrivial_index]
+set.seed(123)
+trivial_seleted_index <- sample(trivial_index, size = 55, replace = FALSE)
 
 scatter_est_r2 <- tibble(tau = as.numeric(tau_est_selected[, c(trivial_seleted_index, nontrivial_index)]),
                          R2 = factor(rep(r2_est_selected, 100)),
@@ -195,18 +192,127 @@ scatter_est_r2 <- tibble(tau = as.numeric(tau_est_selected[, c(trivial_seleted_i
   theme(plot.title = element_text(hjust = 0.5, size = 23.5),
         legend.position = "bottom")
 scatter_est_r2
-# ggsave("LatentDim3/scatter_est_r2_L1_temp.pdf", plot = scatter_est_r2, width = 300, height = 160, units = "mm")
+# ggsave("LatentDim3/scatter_est_r2_L1.pdf", plot = scatter_est_r2, width = 300, height = 160, units = "mm")
 
 
+## multivariate calibration ------------------------------------------------------------------------------------
+multicali_results <- CopSens::gcalibrate(y, tr, t1 = diag(k),
+                                         t2 = matrix(0, ncol = k, nrow = k),
+                                         calitype ="worstcase",
+                                         mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
+                                         mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
+                                         R2 = c(0.5, 1))
+# multicali_results$est_df %>% head()
+cover_index <- (multicali_results$est_df[,'R2_1_lwr'] <= tau) & (multicali_results$est_df[,'R2_1_upr']>= tau)
+sum(cover_index)
+
+##### order by true effect ######
+## all treatments ##
+index <- c(trivial_index[order(tau[trivial_index])], 
+           nontrivial_index[order(tau[nontrivial_index])])
+bound_df <- tibble(x1 = 1:k,
+                   y1 = multicali_results$est_df[index,'R2_1_lwr'],
+                   x2 = 1:k,
+                   y2 = multicali_results$est_df[index,'R2_1_upr'])
+mean_ig_df <- tibble(case = rep(1:k, times=2),
+                     true = rep(tau[index], 2),
+                     R2_0 = rep(multicali_results$est_df[index,'R2_0'], 2),
+                     R2_50 = c(multicali_results$est_df[index, 'R2_0.5_lwr'],
+                               multicali_results$est_df[index, 'R2_0.5_upr']),
+                     R2_100 = c(multicali_results$est_df[index, 'R2_1_lwr'],
+                                multicali_results$est_df[index, 'R2_1_upr'])) %>%
+  gather(key = "Type", value = "est", - case)
+mean_ig_df$Type <- factor(mean_ig_df$Type, 
+                          levels = c("true", "R2_0", "R2_50", "R2_100"),
+                          labels = c("true", "R2_0", "R2_50", "R2_100"))
+plot_nulleffect_worstcase <- 
+  ggplot() +
+  ungeviz::geom_hpline(data = mean_ig_df, aes(x = case, y = est, col = Type), width = 0.8, size = 0.5)  +
+  geom_hline(yintercept=0, linetype = "dashed", size = 0.2) +
+  geom_vline(aes(xintercept=455.5), linetype = "dashed", size = 0.2) +
+  geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.1) +
+  scale_colour_manual(name = "",
+                      values = divergingx_hcl(4,palette = "Zissou 1"),
+                      labels = c("true effect",
+                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 0%'),
+                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 50%'),
+                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 100%'))) +
+  labs(y = expression(tau)) +
+  xlim(1,500) +
+  theme_bw(base_size = 15) +
+  theme(plot.title = element_text(hjust = 0.5),
+        # axis.text.x = element_text(size = 13, angle = 75, hjust = 1),
+        legend.text.align = 0,
+        legend.title = element_text(size=14)) +
+  coord_flip()
+plot_nulleffect_worstcase
+ggsave("LatentDim3/plot_nulleffect_worstcase.pdf", plot = plot_nulleffect_worstcase, 
+       width = 300, height = 450, units = "mm")
 
 
-
-
-
-
-
-
-
+## selected treatments ##
+uncovered_index <- (1:k)[!cover_index] # 267 307
+trivial_index_selected <- c(sample(trivial_index[!(trivial_index %in% uncovered_index)],
+                                 size = 53, replace = FALSE),
+                            uncovered_index)
+index <- c(trivial_index_selected[order(tau[trivial_index_selected])],  ## order by true effect
+           nontrivial_index[order(tau[nontrivial_index])])
+# index <- c(trivial_index_selected[order(tau_t[trivial_index_selected])],  ## order by naive effect
+#            nontrivial_index[order(tau_t[nontrivial_index])])
+bound_df <- tibble(x1 = 1:length(index),
+                   y1 = multicali_results$est_df[index,'R2_1_lwr'],
+                   x2 = 1:length(index),
+                   y2 = multicali_results$est_df[index,'R2_1_upr'])
+mean_ig_df <- tibble(case = rep(1:length(index), times=2),
+                     true = rep(tau[index], 2),
+                     R2_0 = rep(multicali_results$est_df[index,'R2_0'], 2),
+                     R2_50 = c(multicali_results$est_df[index, 'R2_0.5_lwr'],
+                               multicali_results$est_df[index, 'R2_0.5_upr']),
+                     R2_100 = c(multicali_results$est_df[index, 'R2_1_lwr'],
+                                multicali_results$est_df[index, 'R2_1_upr'])) %>%
+  gather(key = "Type", value = "est", - case)
+mean_ig_df$Type <- factor(mean_ig_df$Type, 
+                          levels = c("true", "R2_0", "R2_50", "R2_100"),
+                          labels = c("true", "R2_0", "R2_50", "R2_100"))
+rect_x <- c(which(index == 267), which(index == 307))
+multicali_results$est_df[uncovered_index,]
+# rect_df <- data.frame(x1 = rect_x - 0.5,
+#                       x2 = rect_x + 0.5,
+#                       y1 = multicali_results$est_df[uncovered_index,'R2_1_lwr'] - c(5,3),
+#                       y2 = multicali_results$est_df[uncovered_index,'R2_1_upr'] + c(5,3))
+arrow_df <- data.frame(x1 = rect_x,
+                       x2 = rect_x,
+                       y1 = rep(3,2),
+                       y2 = rep(1,2))
+plot_nulleffect_worstcase_partial <- 
+  ggplot() +
+  ungeviz::geom_hpline(data = mean_ig_df, aes(x = case, y = est, col = Type), width = 0.9, size = 0.8)  +
+  geom_hline(yintercept=0, linetype = "dashed", size = 0.2) +
+  geom_vline(aes(xintercept=55.5), linetype = "dashed", size = 0.4) +
+  geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.5) +
+  # geom_rect(data = rect_df, aes(xmin=x1, xmax=x2, ymin=y1,ymax=y2), 
+  #           color = "red", alpha = 0, size = 0.5) +
+  geom_segment(data = arrow_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.8,
+               arrow = arrow(length = unit(0.3, "cm")), color = "red") +
+  scale_colour_manual(name = "",
+                      values = divergingx_hcl(4,palette = "Zissou 1"),
+                      labels = c("True Effect",
+                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 0%'),
+                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 50%'),
+                                 expression(R[paste(tilde(Y), '~', U, '|', T)]^2~'= 100%'))) +
+  labs(y = expression(tau)) +
+  annotate(geom = "text", x = c(23, 79), y = c(35, 35), size = 6,
+           label = c("null", "non-null")) + 
+  theme_bw(base_size = 15) +
+  theme(plot.title = element_text(hjust = 0.5),
+        # axis.text.x = element_text(size = 13, angle = 75, hjust = 1),
+        legend.text.align = 0,
+        legend.title = element_text(size=14),
+        legend.text = element_text(size=14))
+plot_nulleffect_worstcase_partial
+ggsave("LatentDim3/plot_nulleffect_worstcase_partial_trueorder.pdf", 
+       plot = plot_nulleffect_worstcase_partial, 
+       width = 450, height = 180, units = "mm")
 
 
 
