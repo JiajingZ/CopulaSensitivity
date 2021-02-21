@@ -99,19 +99,14 @@ ate_bias_bound_animation <- bound_df_narrow %>%
   geom_vline(aes(xintercept = x_anim), linetype = "dashed",
              data = tibble(x_anim = seq(0, pi/2, by = 0.05))) +
   gganimate::transition_time(time = x_anim)
+
+
 ate_bias_bound_gif <- gganimate::animate(ate_bias_bound_animation,
                                          rewind=TRUE, nframes=100, fps=20)
 ate_bias_bound_gif
-gganimate::anim_save("ate_bias_bound.gif", ate_bias_bound_gif,
-                     path = "simulation/Figure2")
-
-
-
-# ggsave("ate_bias_bound.pdf", plot = ate_bias_bound, width = 150, height = 100, units = "mm"s)
-
+# gganimate::anim_save("ate_bias_bound.gif", ate_bias_bound_gif, path = "simulation/Figure2")
 
 #---------------------------- plot distirbution using ggridges ------------------------------------------------
-
 var_u1_t <- cov_u_t_hat[1, 1]
 useq <- seq(-2, 2, by=0.01)
 # super-population density #
@@ -120,16 +115,8 @@ upop_density_tibble <- as_tibble(expand.grid(useq, rep(0, ncol(dt_max2min)))) %>
   mutate(dens = dnorm(u, mean = mu, sd = 1)) %>%
   add_column(t = rep('pop', length(useq)*ncol(dt_max2min)))
 # sub-population density #
-# t1_max2min <- matrix(rep(c(-1,-1,1,-1,1,1,1,-1,-1,-1), ncol(dt_max2min)), nrow=k)
-# t2_max2min <- t1_max2min - dt_max2min
-# mu_u1_t1_max2min <- c((coef_mu_u_t_hat %*% t1_max2min)[1, ])
-# mu_u1_t2_max2min <- c((coef_mu_u_t_hat %*% t2_max2min)[1, ])
-
-
-# mu_u1_t_base <- (coef_mu_u_t_hat %*% c(-1,-1,1,-1,1,1,1,-1,-1,-1))[1,]
 mu_u1_t_base <- seq(0, (coef_mu_u_t_hat %*% c(-1,-1,1,-1,1,1,1,-1,-1,-1))[1,],
                     length.out = length(mu_u1_dt_half))
-
 mu_u1_dt_half <- c((coef_mu_u_t_hat %*% dt_max2min)[1, ]/2)
 density_tibble <- as_tibble(rbind(expand.grid(useq, mu_u1_dt_half + mu_u1_t_base),
                                   expand.grid(useq, -mu_u1_dt_half + mu_u1_t_base))) %>%
@@ -161,12 +148,14 @@ density_animation <-
        y = expression('Disttribution of'~U[1])) +
   #---------- add animation ---------------#
   gganimate::transition_time(theta)
+
+
 density_gif <- animate(density_animation, rewind=TRUE, nframes = 100, fps=20)
 density_gif
 # gganimate::anim_save("density_gif_noncentral.gif", density_gif, path = "simulation/Figure2")
 
 
-## Combine the two animation plot plots
+## Combine the two animation plot plots -----------------------------------------------------
 ate_bias_bound_mgif <- magick::image_read("simulation/Figure2/ate_bias_bound.gif")
 density_mgif <- magick::image_read("simulation/Figure2/density_gif_noncentral.gif")
 

@@ -99,19 +99,14 @@ ate_bias_bound_animation <- bound_df_narrow %>%
   geom_vline(aes(xintercept = x_anim), linetype = "dashed",
              data = tibble(x_anim = seq(0, pi/2, by = 0.05))) +
   gganimate::transition_time(time = x_anim)
-ate_bias_bound_animation
+
 ate_bias_bound_gif <- gganimate::animate(ate_bias_bound_animation,
                                          rewind=TRUE, nframes=100, fps=20)
-gganimate::anim_save("ate_bias_bound.gif", ate_bias_bound_gif,
-                     path = "simulation/Figure2")
-
-
-
-# ggsave("ate_bias_bound.pdf", plot = ate_bias_bound, width = 150, height = 100, units = "mm"s)
+ate_bias_bound_gif
+# gganimate::anim_save("ate_bias_bound.gif", ate_bias_bound_gif, path = "simulation/Figure2")
 
 
 #---------------------------- plot distirbution using ggridges ------------------------------------------------
-
 var_u1_t <- cov_u_t_hat[1, 1]
 useq <- seq(-2, 2, by=0.01)
 # super-population density #
@@ -151,13 +146,13 @@ density_animation <-
        y = expression('Disttribution of'~U[1])) +
   #---------- add animation ---------------#
   gganimate::transition_time(theta)
-density_animation
+
 density_gif <- animate(density_animation, rewind=TRUE, nframes = 100, fps=20)
-gganimate::anim_save("density_gif.gif", density_gif,
-                     path = "simulation/Figure2")
+density_gif
+gganimate::anim_save("density_gif.gif", density_gif, path = "simulation/Figure2")
 
 
-## Combine the two animation plot plots
+## Combine the two animation plot plots -------------------------------------------
 ate_bias_bound_mgif <- magick::image_read("simulation/Figure2/ate_bias_bound.gif")
 density_mgif <- magick::image_read("simulation/Figure2/density_gif.gif")
 
@@ -168,4 +163,4 @@ for(i in 2:100){
   combined_gif <- c(combined_gif, combined)
 }
 combined_gif
-gganimate::anim_save("combined.gif", combined_gif, path = "simulation/Figure2")
+# gganimate::anim_save("combined.gif", combined_gif, path = "simulation/Figure2")
