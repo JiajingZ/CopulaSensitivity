@@ -175,11 +175,19 @@ trivial_index <- (1:k)[!(1:k) %in% nontrivial_index]
 set.seed(123)
 trivial_seleted_index <- sample(trivial_index, size = 55, replace = FALSE)
 
+avenorm_nontrivial_r2 <- apply(rbind(tau_cali_mat, tau_t)[,nontrivial_index], 1, function(x) mean(abs(x))) %>% round(2)
+avenorm_trivial_r2 <- apply(rbind(tau_cali_mat, tau_t)[,-nontrivial_index], 1, function(x) mean(abs(x))) %>% round(2)
+avenorm_label_r2 <- paste0("Average absolute magnitude: ", format(avenorm_trivial_r2, nsmall=2), 
+                           ";                                                                  ", 
+                           format(avenorm_nontrivial_r2, nsmall=2))
+
 scatter_est_r2_anim <-
   tibble(tau = as.numeric(rbind(tau_cali_mat, tau_t)[, c(trivial_seleted_index, nontrivial_index)]), ## 43*100
          R2 = round(rep(c(R2_vec, 0), 100)*100, 2),
+         avenorm = rep(avenorm_label_r2, 100),
          index = rep(1:100, each = nrow(tau_cali_mat)+1)) %>%
     ggplot() + geom_point(aes(x = index, y = tau, col = R2), size = 2.5, alpha = 0.7, show.legend = FALSE) +
+    geom_text(aes(x = 45, y = 14, label = avenorm), size = 5) + 
     scale_color_continuous_sequential(name = expression(R[paste(Y,'~',U,'|',T)]^2~":"),
                                       palette="Sunset", rev=TRUE) +
     geom_vline(aes(xintercept=55.5), linetype = "dashed") +
@@ -191,10 +199,10 @@ scatter_est_r2_anim <-
     #------------------ add animation -------------------------#
     gganimate::transition_states(R2) +
     labs(y = expression(tau), x = 'i',
-         title = "Fraction of confounding variation in residual variance of Y: {closest_state}%")
+         title = "Fraction of confounding variation in residual variance of Y: {as.integer(closest_state)}%")
 
-scatter_est_r2_gif <- gganimate::animate(scatter_est_r2_anim, rewind=TRUE,
-                                         nframes=180, fps=20,
+scatter_est_r2_gif <- gganimate::animate(scatter_est_r2_anim, rewind=TRUE, 
+                                         nframes=180, fps=20, start_pause = 10, end_pause = 20,
                                          width = 11.81, height = 6.3, units = "in", res = 150)
 
 scatter_est_r2_gif
