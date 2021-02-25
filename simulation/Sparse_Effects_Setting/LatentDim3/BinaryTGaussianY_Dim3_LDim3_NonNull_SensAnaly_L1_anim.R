@@ -172,34 +172,43 @@ tau_est_selected <- rbind(tau_cali_mat[c(1, 13),], tau_t)
 r2_est_selected <- c(round(100*R2_vec[c(1, 13)], digits = 0), 0) %>% as.character()
 RMSE_selected <- apply(tau_est_selected, 1, function(x) sqrt(mean((x - tau)^2))) %>% round(digits = 2)
 trivial_index <- (1:k)[!(1:k) %in% nontrivial_index]
+
 set.seed(123)
 trivial_seleted_index <- sample(trivial_index, size = 55, replace = FALSE)
 
 avenorm_nontrivial_r2 <- apply(rbind(tau_cali_mat, tau_t)[,nontrivial_index], 1, function(x) mean(abs(x))) %>% round(2)
 avenorm_trivial_r2 <- apply(rbind(tau_cali_mat, tau_t)[,-nontrivial_index], 1, function(x) mean(abs(x))) %>% round(2)
+avenorm_ratio <- avenorm_nontrivial_r2 / avenorm_trivial_r2
 avenorm_label_r2 <- paste0("Average absolute magnitude: ", format(avenorm_trivial_r2, nsmall=2), 
                            ";                                                                  ", 
                            format(avenorm_nontrivial_r2, nsmall=2))
+norm_ratio_label_r2 <-  paste0("Norm ratio (non-null/null): ", format(round(avenorm_ratio, 2), nsmall=2))
+
+duplicated_R2 <- duplicated(as.integer(round(R2_vec, 2)*100))
 
 scatter_est_r2_anim <-
   tibble(tau = as.numeric(rbind(tau_cali_mat, tau_t)[, c(trivial_seleted_index, nontrivial_index)]), ## 43*100
-         R2 = round(rep(c(R2_vec, 0), 100)*100, 2),
-         avenorm = rep(avenorm_label_r2, 100),
-         index = rep(1:100, each = nrow(tau_cali_mat)+1)) %>%
-    ggplot() + geom_point(aes(x = index, y = tau, col = R2), size = 2.5, alpha = 0.7, show.legend = FALSE) +
-    geom_text(aes(x = 45, y = 14, label = avenorm), size = 5) + 
-    scale_color_continuous_sequential(name = expression(R[paste(Y,'~',U,'|',T)]^2~":"),
-                                      palette="Sunset", rev=TRUE) +
-    geom_vline(aes(xintercept=55.5), linetype = "dashed") +
-    annotate(geom = "text", x = c(23, 79), y = c(17.5, 17.5), size = 8,
-             label = c("null", "non-null")) +
+         R2 = as.integer(round(rep(c(R2_vec, 0), 100)*100, 2)),
+         dup = rep(c(duplicated_R2,TRUE), 100),
+         avenorm = rep(norm_ratio_label_r2, 100),
+         Type = rep(c(rep("null", 55), rep("non-null", 45)), each=43),
+         # index = as.integer(rep(c(rank(tau_cali_mat[1, trivial_seleted_index]), 55 + rank(tau_cali_mat[1, nontrivial_index])), each = nrow(tau_cali_mat)+1))) %>%
+         index = as.integer(rep(rank(tau_cali_mat[1, c(trivial_seleted_index, nontrivial_index)]), each = nrow(tau_cali_mat)+1))) %>%
+    filter(dup != TRUE) %>%
+    ggplot() + geom_point(aes(x = index, y = tau, col = Type), size = 2.5, alpha = 0.7, show.legend = TRUE) +
+    geom_text(aes(x = 15, y = 14, label = avenorm), size = 5) + 
+    # scale_color_continuous_sequential(name = expression(R[paste(Y,'~',U,'|',T)]^2~":"),
+    #                                   palette="Sunset", rev=TRUE) +
+#    geom_vline(aes(xintercept=55.5), linetype = "dashed") +
+    # annotate(geom = "text", x = c(23, 79), y = c(17.5, 17.5), size = 8,
+    #          label = c("null", "non-null")) +
     theme_bw(base_size = 25) +
     theme(plot.title = element_text(hjust = 0.5, size = 23.5),
           legend.position = "bottom") +
     #------------------ add animation -------------------------#
     gganimate::transition_states(R2) +
     labs(y = expression(tau), x = 'i',
-         title = "Fraction of confounding variation in residual variance of Y: {as.integer(closest_state)}%")
+         title = "Partial R-squared: {closest_state}%")
 
 scatter_est_r2_gif <- gganimate::animate(scatter_est_r2_anim, rewind=TRUE, 
                                          nframes=180, fps=20, start_pause = 10, end_pause = 20,
