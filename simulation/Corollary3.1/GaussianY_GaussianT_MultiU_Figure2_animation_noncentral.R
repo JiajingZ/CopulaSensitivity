@@ -115,9 +115,9 @@ upop_density_tibble <- as_tibble(expand.grid(useq, rep(0, ncol(dt_max2min)))) %>
   mutate(dens = dnorm(u, mean = mu, sd = 1)) %>%
   add_column(t = rep('pop', length(useq)*ncol(dt_max2min)))
 # sub-population density #
+mu_u1_dt_half <- c((coef_mu_u_t_hat %*% dt_max2min)[1, ]/2)
 mu_u1_t_base <- seq(0, (coef_mu_u_t_hat %*% c(-1,-1,1,-1,1,1,1,-1,-1,-1))[1,],
                     length.out = length(mu_u1_dt_half))
-mu_u1_dt_half <- c((coef_mu_u_t_hat %*% dt_max2min)[1, ]/2)
 density_tibble <- as_tibble(rbind(expand.grid(useq, mu_u1_dt_half + mu_u1_t_base),
                                   expand.grid(useq, -mu_u1_dt_half + mu_u1_t_base))) %>%
   'colnames<-'(c("u", "mu")) %>%
@@ -156,8 +156,8 @@ density_gif
 
 
 ## Combine the two animation plot plots -----------------------------------------------------
-ate_bias_bound_mgif <- magick::image_read("simulation/Figure2/ate_bias_bound.gif")
-density_mgif <- magick::image_read("simulation/Figure2/density_gif_noncentral.gif")
+ate_bias_bound_mgif <- magick::image_read("simulation/Corollary3.1/ate_bias_bound.gif")
+density_mgif <- magick::image_read("simulation/Corollary3.1/density_gif_noncentral.gif")
 
 
 combined_gif <- magick::image_append(c(ate_bias_bound_mgif[1], density_mgif[1]))
