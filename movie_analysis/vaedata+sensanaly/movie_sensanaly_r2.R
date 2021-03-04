@@ -61,13 +61,14 @@ cor.test(mu_u_t %*% gamma_opt, movie$log_budget) # cor = 0.2008618, p-value < 2.
 
 
 # Varying R^2 #
-penalty_weights <-  seq(0, 10, by = 0.1)
+# penalty_weights <-  seq(0, 10, by = 0.1)
+R2_constr_vec <- seq(1, 0, by = -0.01)
 results_multicali_vR2 <- CopSens::gcalibrate(y = y, tr = t, t1 = diag(length(tau_t_sig)),
                                              t2 = matrix(0, ncol = length(tau_t_sig), ncol = length(tau_t_sig)),
                                              calitype = "multicali",
                                              mu_y_dt = as.matrix(tau_t_sig), sigma_y_t = sigma_y_t,
                                              mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
-                                             penalty_weight = penalty_weights)
+                                             R2_constr = R2_constr_vec)
 
 plot(results_multicali_vR2$R2, apply(results_multicali_vR2$est_df[,-1], 2, norm, type = "2"), type = "l",
      ylab = expression(paste("||",tau,"||")[2]), xlab = expression(R[paste(Y,'~',U,'|',T)]^2))
@@ -98,8 +99,8 @@ sum((diff > 0) & (diff*diff_cali > 0)) / sum(diff > 0)
 tau_cali_mat <- t(results_multicali_vR2$est[,-1])
 ntau_obs_df <- tau_t_sig * (n_movie$x)[sig_actors_index]
 ntau_cali74 <- tau_cali_mat[1,] * (n_movie$x)[sig_actors_index]
-ntau_cali30 <- tau_cali_mat[16,] * (n_movie$x)[sig_actors_index]
-ntau_cali10 <- tau_cali_mat[76,] * (n_movie$x)[sig_actors_index]
+ntau_cali30 <- tau_cali_mat[71,] * (n_movie$x)[sig_actors_index]
+ntau_cali10 <- tau_cali_mat[91,] * (n_movie$x)[sig_actors_index]
 
 plot_summary_con <- function(cast) {
   k = length(cast)
@@ -125,8 +126,8 @@ plot_summary_con <- function(cast) {
                         values = divergingx_hcl(7,palette = "Zissou 1")[c(1,2,4,7)],
                           # divergingx_hcl(5, palette = "Zissou 1")[c(1, 2, 3, 5)],
                         labels = c("0 %",
-                                   paste0(round(results_multicali_vR2$R2[76]*100, digits = 0), "%"),
-                                   paste0(round(results_multicali_vR2$R2[16]*100, digits = 0), "%"),
+                                   paste0(round(results_multicali_vR2$R2[91]*100, digits = 0), "%"),
+                                   paste0(round(results_multicali_vR2$R2[71]*100, digits = 0), "%"),
                                    paste0(round(results_multicali_vR2$R2[1]*100, digits = 0), "%"))) +
     scale_x_continuous("Actor j", breaks = 2*(1:length(cast)), labels = gsub('.', ' ', x = cast, fixed =TRUE)) +
     labs(y = expression(eta[j])) +
@@ -209,8 +210,8 @@ plot_movie_worstcase
 
 plot_movie_worstmulti <- plot_movie_worstcase / plot_movie_multicali_r2 & theme(plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"))
 plot_movie_worstmulti
-ggsave("plot_movie_worstmulti.pdf", plot = plot_movie_worstmulti, 
-       width = 300, height=200, units = "mm", path = "movie_analysis/Figures")
+# ggsave("plot_movie_worstmulti.pdf", plot = plot_movie_worstmulti,
+#        width = 300, height=200, units = "mm", path = "movie_analysis/Figures")
 
 # Robustness Value Table ----------------------------------------------------------------------------------------------------
 

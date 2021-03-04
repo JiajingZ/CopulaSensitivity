@@ -44,8 +44,7 @@ cali_results_R1 <- CopSens::gcalibrate(y, tr, t1 = diag(k),
                                       calitype ="multicali",
                                       mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
                                       mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
-                                      penalty_weight = 0,
-                                      n_iter = 1000, normtype = "L1")
+                                      R2_constr = 1, normtype = "L1")
 (R2 <- round(cali_results_R1$R2, digits = 2))
 tau_cali <- cali_results_R1$est_df[,2]
 
