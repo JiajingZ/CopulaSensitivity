@@ -129,12 +129,14 @@ for (k in seq(1, 500, by = 1)) {
 
 ############################  multivariate calibration(MCC) with various R^2 ########################################################
 R2_constr_vec <- seq(1, 0, by = -0.01)
+
 cali_results <- CopSens::gcalibrate(y, tr, t1 = diag(k),
                                     t2 = matrix(0, ncol = k, nrow = k),
                                     calitype ="multicali",
                                     mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
                                     mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
-                                    R2_constr = R2_constr_vec[-c(31, 37)], normtype = "L1")
+                                    R2_constr = R2_constr_vec, normtype = "L1",
+                                    solver="SCS")
 
 R2_vec <- cali_results$R2
 tau_cali_mat <- t(cali_results$est_df[,-1])
