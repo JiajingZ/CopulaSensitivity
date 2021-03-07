@@ -41,12 +41,11 @@ nontrivial_index <- which(abs(tau) > 0.1)
 
 # Calibrating ----------------------------------------------------
 cali_results_R1 <- CopSens::gcalibrate(y, tr, t1 = diag(k),
-                                   t2 = matrix(0, ncol = k, nrow = k),
-                                   calitype ="multicali",
-                                   mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
-                                   mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
-                                   penalty_weight = 0,
-                                   n_iter = 1000, normtype = "L1")
+                                       t2 = matrix(0, ncol = k, nrow = k),
+                                       calitype ="multicali",
+                                       mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
+                                       mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
+                                       R2_constr = 1, normtype = "L1")
 (R2 <- round(cali_results_R1$R2, digits = 2))
 tau_cali <- cali_results_R1$est_df[,2]
 
@@ -129,14 +128,16 @@ for (k in seq(1, 500, by = 1)) {
 
 
 ############################  multivariate calibration(MCC) with various R^2 ########################################################
-penalty_weights <-  c(seq(0, 8000, by = 200), 20000)
+R2_constr_vec <- seq(1, 0, by = -0.01)
+
 cali_results <- CopSens::gcalibrate(y, tr, t1 = diag(k),
-                                   t2 = matrix(0, ncol = k, nrow = k),
-                                   calitype ="multicali",
-                                   mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
-                                   mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
-                                   penalty_weight = penalty_weights,
-                                   n_iter = 100, normtype = "L1")
+                                    t2 = matrix(0, ncol = k, nrow = k),
+                                    calitype ="multicali",
+                                    mu_y_dt = tau_t, sigma_y_t = sigma_y_t,
+                                    mu_u_dt = u_t_diff, cov_u_t = cov_u_t,
+                                    R2_constr = R2_constr_vec, normtype = "L1",
+                                    solver="SCS")
+
 R2_vec <- cali_results$R2
 tau_cali_mat <- t(cali_results$est_df[,-1])
 
@@ -245,8 +246,8 @@ plot_nulleffect_worstcase <-
         legend.title = element_text(size=14)) +
   coord_flip()
 plot_nulleffect_worstcase
-ggsave("LatentDim3/plot_nulleffect_worstcase.pdf", plot = plot_nulleffect_worstcase,
-       width = 300, height = 450, units = "mm")
+# ggsave("LatentDim3/plot_nulleffect_worstcase.pdf", plot = plot_nulleffect_worstcase,
+#        width = 300, height = 450, units = "mm")
 
 
 ## selected treatments ##
