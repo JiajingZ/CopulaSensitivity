@@ -144,15 +144,15 @@ density_animation <-
                                expression(U[1])),
                       name = '') +
   guides(fill = guide_legend(reverse = TRUE)) +
-  labs(title = expression(Delta~"t" ~ "=" ~ u[1]^B), x=expression(U[1]),
-       y = expression('Disttribution of'~U[1])) +
+  labs(title = expression('Distributions of'~U[1]), x=expression(U[1]),
+       y = "Density") +
   #---------- add animation ---------------#
   gganimate::transition_time(theta)
 
 
 density_gif <- animate(density_animation, rewind=TRUE, nframes = 100, fps=20)
 density_gif
-# gganimate::anim_save("density_gif_noncentral.gif", density_gif, path = "simulation/Figure2")
+# gganimate::anim_save("density_gif_noncentral.gif", density_gif, path = "simulation/Corollary3.1")
 
 
 ## Combine the two animation plot plots -----------------------------------------------------
@@ -166,6 +166,6 @@ for(i in 2:100){
   combined_gif <- c(combined_gif, combined)
 }
 combined_gif
-# gganimate::anim_save("combined_noncentral.gif", combined_gif, path = "simulation/Figure2")
+# gganimate::anim_save("combined_noncentral.gif", combined_gif, path = "simulation/Corollary3.1")
 
 
