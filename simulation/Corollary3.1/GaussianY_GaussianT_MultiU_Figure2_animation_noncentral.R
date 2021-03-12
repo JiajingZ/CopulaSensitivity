@@ -131,17 +131,16 @@ density_animation <-
   ggplot() +
   ggridges::geom_ridgeline(aes(x=u, height=dens, y = t, fill = t), scale=2, alpha=0.75) +
   theme_bw(base_size=13) +
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.position=c(0.08, 0.975),
-        legend.text=element_text(size=11),
-        legend.title = element_text(size = 9),
+  theme(plot.title = element_text(hjust = 0.5,size=19),
+        legend.position=c(0.1, 0.97),
+        legend.text=element_text(size=15),
+        legend.title = element_text(size = 30),
         legend.key.size = unit(0.25, "cm"),
-        legend.text.align = 0,
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
-  scale_fill_discrete(labels=c(expression(U[1]~'|'~t[2]),
-                               expression(U[1]~'|'~t[1]),
-                               expression(U[1])),
+  scale_fill_discrete(labels=c(expression('f('~U[1]~'|'~t[2]~')'),
+                               expression('f('~U[1]~'|'~t[1]~')'),
+                               expression('f('~U[1]~')')),
                       name = '') +
   guides(fill = guide_legend(reverse = TRUE)) +
   labs(title = expression('Distributions of'~U[1]), x=expression(U[1]),
@@ -152,7 +151,7 @@ density_animation <-
 
 density_gif <- animate(density_animation, rewind=TRUE, nframes = 100, fps=20)
 density_gif
-# gganimate::anim_save("density_gif_noncentral.gif", density_gif, path = "simulation/Corollary3.1")
+gganimate::anim_save("density_gif_noncentral.gif", density_gif, path = "simulation/Corollary3.1")
 
 
 ## Combine the two animation plot plots -----------------------------------------------------
