@@ -97,7 +97,7 @@ ate_bias_bound <- bound_df_narrow %>%
                      labels = c("0", expression(pi/8), expression(pi/4), expression(3*pi/8), expression(pi/2)),
                      limits = c(0, pi/2))
 ate_bias_bound
-# ggsave("ate_bias_bound.pdf", plot = ate_bias_bound, width = 150, height = 100, units = "mm"s)
+# ggsave("ate_bias_bound.pdf", plot = ate_bias_bound, width = 150, height = 100, units = "mm")
 
 
 #---------------------------- plot distirbution using ggridges ------------------------------------------------
