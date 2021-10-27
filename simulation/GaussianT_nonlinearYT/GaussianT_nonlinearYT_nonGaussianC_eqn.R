@@ -114,7 +114,7 @@ plot(pnorm(u_sample_marg, mean = mu_u_t, sd = sigma_u_t), Uy_sample_marg)
 t_interest <- rbind(t_choice, t2)
 quad_para <- expand_grid(a = c(1, -1), b = c(-2, 0, 2))
 domean_cali_quad_mat <- matrix(NA, nrow = nrow(t_interest), ncol = nrow(quad_para),
-                               dimnames = list(NULL, paste0(quad_para$a, ", b = ", quad_para$b)))
+                               dimnames = list(NULL, paste0("Quadratic: a = ", quad_para$a, ", b = ", quad_para$b)))
 for(i in 1:nrow(quad_para)){
   domean_cali_quad_mat[,i] <- apply(t_interest, 1,
                                     cal_doMean_quadratic,
@@ -130,9 +130,9 @@ ate_cali_quad_narrow <-
   gather(key = "Type", value = "effect", - case)
 
 saveRDS(ate_cali_quad_narrow,
-        file = "/Users/jiajing/Desktop/CopulaSensitivity/simulation/GaussianT_nonlinearYT/ate_cali_quad_narrow.rds")
+        file = "simulation/GaussianT_nonlinearYT/ate_cali_quad_narrow.rds")
 
-cal_doMean_log <- function(t, N = 1e6, a = 1, b = 10) {
+cal_doMean_mix <- function(t, a1, a2, b1, b2, N = 1e6) {
   message(cat("Case: T = ", t))
 
   ## sample tildet ~ f(t)
@@ -143,12 +143,12 @@ cal_doMean_log <- function(t, N = 1e6, a = 1, b = 10) {
 
   ## u ~ f(u | t)
   u_sample_cond <- rnorm(N, mean = mu_u_t, sd = sigma_u_t)
-  yu_func <- function(u) {a*log(u + b)}
+  yu_func <- function(u) {ifelse(runif(n) < 0.5, a1*u+b1, a2*u+b2)}
 
   ytilde_sample_cond <- yu_func(u_sample_cond)
   ytilde_cdf <- ecdf(ytilde_sample_cond)
   Uy_sample_cond <- ytilde_cdf(ytilde_sample_cond)
-                                        # u ~ f(u)
+  ## u ~ f(u)
   u_sample_marg <- rnorm(N, mean = mu_u_tildet, sd = sigma_u_t)
   ytilde_sample_marg <- yu_func(u_sample_marg)
   Uy_sample_marg <- ytilde_cdf(ytilde_sample_marg)
@@ -159,36 +159,37 @@ cal_doMean_log <- function(t, N = 1e6, a = 1, b = 10) {
   mu_y_t <- c(g_yt(t(t)) + t %*% t(coef_mu_u_t) %*% gamma)
   y_sample <- qnorm(Uy_sample_marg, mean = mu_y_t, sd = sigma_y_t)
 
-
-  browser()
   ## calculate mean(y)
   mean(y_sample)
 
 }
 
+mix_para <- tibble(a1 = c(1,1,1,-1),
+                   a2 = c(-1,-1,1,-1),
+                   b1 = c(0,-2,-2,-2),
+                   b2 = c(-2,0,2,2))
+domean_cali_mix_mat <- matrix(NA, nrow = nrow(t_interest), ncol = nrow(mix_para),
+                               dimnames = list(NULL, paste0("Mix: a1=", mix_para$a1, 
+                                                            ",b1=", mix_para$b1,
+                                                            ",a2=", mix_para$a2,
+                                                            ",b2=", mix_para$b2)))
+for(i in 1:nrow(mix_para)){
+  domean_cali_mix_mat[,i] <- apply(t_interest, 1,
+                                   cal_doMean_mix,
+                                   a1 = mix_para$a1[i],
+                                   a2 = mix_para$a2[i],
+                                   b1 = mix_para$b1[i],
+                                   b2 = mix_para$b2[i])
+}
 
-domean_cali_log_mat <- cbind(apply(t_interest, 1, cal_doMean_log, a = 1),
-                             apply(t_interest, 1, cal_doMean_log, a = -1)) %>%
-  'colnames<-'(paste0("log: a = ", c(-1, 1)))
-
-colnames(domean_cali_log_mat) <- paste0("log: a = ", c(-1, 1))
-
-ate_cali_log_narrow <-
-  t(t(domean_cali_log_mat)[,1:4] - t(domean_cali_log_mat)[,5]) %>%
+ate_cali_mix_narrow <-
+  t(t(domean_cali_mix_mat)[,1:4] - t(domean_cali_mix_mat)[,5]) %>%
   as_tibble() %>%
   add_column(case = 1:nrow(t_choice)) %>%
   gather(key = "Type", value = "effect", - case)
-saveRDS(ate_cali_log_narrow,
-        file = "/Users/jiajing/Desktop/CopulaSensitivity/simulation/GaussianT_nonlinearYT/ate_cali_log_narrow.rds")
 
-
-
-
-
-
-
-
-
+saveRDS(ate_cali_mix_narrow,
+        file = "simulation/GaussianT_nonlinearYT/ate_cali_mix_narrow.rds")
 
 
 
@@ -197,21 +198,24 @@ saveRDS(ate_cali_log_narrow,
 # true copula #
 norm_cop <- copula::normalCopula(gamma*sigma_u_t/sigma_y_t)
 # Clayton #
-readRDS("ate_cali_clayton_tibble.rds") %>%
+readRDS("simulation/GaussianT_nonlinearYT/ate_cali_clayton_tibble.rds") %>%
   gather(key = "Type", value = "effect", - case) -> ate_cali_clayton_narrow
 ate_cali_clayton_narrow$Type <- factor(ate_cali_clayton_narrow$Type, 
                                        levels = c("Clayton -0.5","Clayton 2","Clayton 10"),
                                        labels = c("Clayton (theta==-0.5)","Clayton theta==2","Clayton (theta=10)"))
 # Quadratic #
-readRDS("ate_cali_quad_narrow.rds") -> ate_cali_quad_narrow
-# Log #
-readRDS("ate_cali_log_narrow.rds") -> ate_cali_log_narrow
+readRDS("simulation/GaussianT_nonlinearYT/ate_cali_quad_narrow.rds") -> ate_cali_quad_narrow
+# Mix Distributions #
+readRDS("simulation/GaussianT_nonlinearYT/ate_cali_mix_narrow.rds") -> ate_cali_mix_narrow
 
 
 legend_labs <- c(expression((u-2)^2), expression(u^2), expression((u+2)^2),
                  expression(-(u-2)^2), expression(-u^2), expression(-(u+2)^2),
                  expression(Clayton (theta==-0.5)), expression(Clayton (theta==2)), expression(Clayton (theta==10)),
-                 expression(log(u) + epsilon), expression(-log(u) + epsilon))
+                 expression(ifelse(runif(n) < 0.5, u, -u-2)), 
+                 expression(ifelse(runif(n) < 0.5, u-2, -u)),
+                 expression(ifelse(runif(n) < 0.5, u-2, u+2)),
+                 expression(ifelse(runif(n) < 0.5, -u-2, -u+2)))
 
 ## plot #
 library(ggrepel)
@@ -222,15 +226,15 @@ names(codebook1) <- toupper(letters)[1:6]
 codebook2 <- as.character(unique(ate_cali_clayton_narrow$Type))
 names(codebook2) <- toupper(letters)[7:9]
 
-codebook3 <- as.character(unique(ate_cali_log_narrow$Type))
-names(codebook3) <- toupper(letters)[10:11]
+codebook3 <- as.character(unique(ate_cali_mix_narrow$Type))
+names(codebook3) <- toupper(letters)[10:13]
 
 
 ate_cali_quad_narrow %<>% mutate(Type2 = fct_recode(factor(Type), !!!codebook1)) %>% mutate(Class="Quadratic")
 ate_cali_clayton_narrow %<>% mutate(Type2 = fct_recode(factor(Type), !!!codebook2)) %>% mutate(Class = "Clayton")
-ate_cali_log_narrow %<>% mutate(Type2 = fct_recode(factor(Type), !!!codebook3)) %>% mutate(Class = "Log")
+ate_cali_mix_narrow %<>% mutate(Type2 = fct_recode(factor(Type), !!!codebook3)) %>% mutate(Class = "Mix")
 
-ate_cali_narrow <- bind_rows(ate_cali_quad_narrow, ate_cali_clayton_narrow, ate_cali_log_narrow)
+ate_cali_narrow <- bind_rows(ate_cali_quad_narrow, ate_cali_clayton_narrow, ate_cali_mix_narrow)
 ate_cali_narrow %<>% mutate(Type3 = paste(Type2, Type, sep=": "))
 
 ate_cali_narrow %<>%
@@ -262,19 +266,8 @@ p <- p + guides(
                title = "Copula",
                override.aes = list(label = toupper(letters[1:11]))))
 
-ggsave(p, file="copula_sim.pdf")
-
-
-
-
-n <- 100000
-u <- rnorm(10000)
-quad_tib <- tibble(u=u, y1=(u-2)^2, y2=u^2, y3=(u+2)^2, y4=-(u-2)^2, y5=-u^2, y6=-(u+2)^2)
-quad_tib %>% pivot_longer(-u) %>%
-  mutate(u=pnorm(u)) %>% group_by(name) %>%
-  mutate(value = ecdf(value)(value)) %>%
-  ungroup() %>%
-  ggplot() + geom_point(aes(x=u, y=value, col=name)) + theme_bw()
+p
+ggsave(p, file="simulation/GaussianT_nonlinearYT/copula_sim.pdf")
 
 
 
@@ -285,47 +278,3 @@ quad_tib %>% pivot_longer(-u) %>%
 
 
 
-# draft ---------------------------------------------------------------------------------------------------
-
-ate_cali_nonG_tibble <- tibble(case = 1:nrow(t_choice),
-                               cali_nonG = domean_cali_nonGaussian[1:4] - domean_cali_nonGaussian[5],
-                               group = factor(rep(17, nrow(t_choice))))
-
-plot_nonlinearYT_ate_nonG <- tibble(SR1 = ate_cali_mat[,'R2_1_lwr'],
-                                    SR0 = ate_cali_mat[,'R2_0'],
-                                    SR_1 = ate_cali_mat[,'R2_1_upr'],
-                                    case=1:nrow(t_choice)) %>%
-  gather(key = "Type", value = "effect", - case) %>%
-  ggplot() +
-  ungeviz::geom_hpline(aes(x = case, y = effect, col = Type), width = 0.2, size = 1)  +
-  # geom_point(data = true_df, aes(x = case, y = true, shape = group), size = 2) +
-  # geom_point(data = cali_gumbel_df, aes(x = case, y = cali_gumbel), size = 2, shape=17) +
-  ungeviz::geom_hpline(data = ate_cali_nonG_tibble,
-                       aes(x = case, y = cali_nonG, col = group), 
-                       width = 0.2, size = 1) + 
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  geom_segment(data = bound_df, aes(x=x1,y=y1,xend=x2,yend=y2), size = 0.5) +
-  scale_shape_manual(name = "True Effect", values = 8, labels = "") +
-  scale_colour_manual(name = "Calibrated",
-                      values = c("#7CAE00", divergingx_hcl(7,palette = "Zissou 1")[c(7,4,1)]),
-                      labels = c(expression("NonGaussian"),
-                                 expression("Gaussian, "~R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, upper'),
-                                 expression("Gaussian, "~R[paste(tilde(Y), '~', U, '|', T)]^2~'= 0'),
-                                 expression("Gaussian, "~R[paste(tilde(Y), '~', U, '|', T)]^2~'= 1, lower'))) +
-  labs(title = bquote(PATE[paste(t[1], ",", t[2])]~"for Gaussian Outcome"),
-       y = expression('Causal Effect'), x = 'i') +
-  xlim(0.9, 4.4) +
-  # annotate(geom = "text", x = 1:4 + 0.3, y = c(ate_cali_mat[,'R2_0']), size = 3,
-  #          label = c('0%', 'robust', 'robust', '8.95%'))+
-  theme_bw(base_size = 15) +
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.text.align = 0)
-print(plot_nonlinearYT_ate_nonG)
-
-geom_errorbar()
-
-# non-monotone
-  # quandratic with diff u_cons (-2, 2), +- U^2,perfect dependence
-# monotone
-  # clayton, 
-  # transformation of u, log(u)
