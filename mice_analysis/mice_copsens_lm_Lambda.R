@@ -5,7 +5,7 @@ library(kableExtra)
 
 ## load the data #
 y <- micedata[,1]
-tr <- micedata[, 2:38] ## 2-18 are nonnull tr
+tr <- micedata[, 2:18] ## 2-18 are nonnull tr
 # treatment contrast of interest #
 percentiles  <- seq(0.05, 0.95, by=0.05)
 tr_test <- matrix(0, nrow=0, ncol=ncol(tr))
@@ -19,7 +19,15 @@ rownames(tr_test) <- rep(colnames(tr), each=length(percentiles))
 
 # treatment model #
 # ut_cv <- pcaMethods::kEstimate(tr, method = "ppca", allVariables = TRUE)
-nfact <- 3 ## by scree plot of the singular values of tr
+
+mouse_scree <- tibble(`Singular value` = 1:ncol(tr), `Value` = svd(as.matrix(scale(tr)))$d) %>%
+  ggplot(aes(x=`Singular value`, y=`Value`)) + geom_point(size=2, color="firebrick2") +
+  ylab("") + theme_bw(base_size=16) + ggtitle("Scree plot for mouse data")
+ggsave(file="mouse_scree.pdf", mouse_scree, width=4.5, height=3.5)
+
+
+nfact <-  2 ## by scree plot of the singular values of tr
+  
 ut_factanal <- factanal(tr, factors = nfact)
 B_hat <- diag(sqrt(diag(var(tr)))) %*% ut_factanal$loadings
 Lambda_hat <- diag(ut_factanal$uniquenesses * sqrt(diag(var(tr))))
@@ -34,9 +42,14 @@ data_lm <- cbind(y, rep(1, nrow(micedata)), tr) %>%
 colnames(data_lm)[-1] <- paste0("X", 1:(ncol(tr)+1))
 lmfit_y_t <- rstanarm::stan_glm(y ~.-1, data = data_lm, seed = 111)
 
-coef_mu_y_t_draws <- as.matrix(lmfit_y_t)[3001:4000,c(-1,-39)]
+coefs <- coef(lmfit_y_t)[-c(1, ncol(tr)+2)]
+intervals <- rstanarm::posterior_interval(lmfit_y_t, 0.95)
+names(coefs) <- rownames(intervals)[2:(ncol(tr)+1)] <- colnames(tr)
+
+
+coef_mu_y_t_draws <- as.matrix(lmfit_y_t)[3001:4000,c(-1,-(ncol(tr)+2))]
 colnames(coef_mu_y_t_draws) <- colnames(tr)
-sigma_y_t_hat_draws <- as.matrix(lmfit_y_t)[3001:4000,39]
+sigma_y_t_hat_draws <- as.matrix(lmfit_y_t)[3001:4000, ncol(tr) + 2]
 tr_contrasts <- tr_test - matrix(apply(tr, 2, median),
                                  nrow=length(percentiles)*ncol(tr),
                                  ncol = ncol(tr), byrow=TRUE)
@@ -68,12 +81,14 @@ ribbon_naive <- naive_grouped %>%
 gene_sig <- naive_grouped %>%
   group_by(gene) %>%
   mutate(significant = any(lwr*upr > 0)) %>%
-  select(gene, significant) %>%
+  dplyr::select(gene, significant) %>%
   distinct() %>%
   filter(significant==TRUE) %>%
-  select(gene)
+  dplyr::select(gene)
 
 gene_sig
+#gene_sig <- naive_grouped %>% dplyr::select(gene) %>% distinct()
+gene_sig <- rownames(intervals[-c(1, ncol(tr)+2),])[intervals[-c(1, ncol(tr)+2), 1]*intervals[-c(1, ncol(tr)+2), 2] > 0]
 
 # Sensitivity Analysis -----------------------------------------------------------------------------------
 
@@ -156,6 +171,7 @@ RV_null_limit_all <- CopSens::cal_rv(y = y, tr = tr,
                                  mu_u_dt = as.matrix(t1 - t2) %*% t(coef_mu_u_t_hat), 
                                  cov_u_t = cov_u_t_hat)
 RV_null_limit_all[is.nan(RV_null_limit_all)]  <- 0
+RV_null_limit_all[is.na(RV_null_limit_all)]  <- 0
 RV_null_limit <- RV_null_limit_all[19*(1:ncol(tr))]
 RV_null_mean_all <- CopSens::cal_rv(y = y, tr = tr,
                                      t1 = t1, t2 = t2,
@@ -165,7 +181,7 @@ RV_null_mean_all <- CopSens::cal_rv(y = y, tr = tr,
                                      cov_u_t = cov_u_t_hat)
 RV_null_mean_all[is.nan(RV_null_mean_all)]  <- 0
 RV_null_mean <- RV_null_mean_all[19*(1:ncol(tr))]
-RV_null_mean[gene_sig$gene]
+RV_null_mean[gene_sig]
 
 # plot_gene_rv <- function(target_gene){
 #   tibble(quantile = percentiles,
@@ -173,12 +189,12 @@ RV_null_mean[gene_sig$gene]
 # }
 ## y_mu_dt, proprtional to dt, proportional to mu_u_dt, rv same for each gene
 
-rv_siggene <- (RV_null_limit_all[19*(1:ncol(tr))])[gene_sig$gene]
+rv_siggene <- (RV_null_limit_all[(ncol(tr)+2)*(1:ncol(tr))])[gene_sig]
 # significant genes that are robust to confoundedness
 gene_robust <- which(is.na(rv_siggene)) %>% names()
 gene_robust
 # significant, not robust to confoundedness
-gene_sig$gene[!(as.character(gene_sig$gene) %in% gene_robust)] %>% as.character()
+gene_sig[!(as.character(gene_sig) %in% gene_robust)] %>% as.character()
 
 # plot_gene("Vwf") + plot_gene("2010002N04Rik") + plot_gene("Gapdh")
 # 
@@ -192,14 +208,14 @@ coef_mu_y_t_summary <- tibble(mean = apply(coef_mu_y_t_draws, 2, mean),
                               lwr = apply(coef_mu_y_t_draws, 2, quantile, probs = 0.025),
                               upr = apply(coef_mu_y_t_draws, 2, quantile, probs = 0.975)) %>%
   round(digits = 2)
-dt <- tibble(Name = gene_sig$gene,
-                 naive_mean  = (coef_mu_y_t_summary$mean)[gene_sig$gene],
-                 naive_limit = (ifelse(abs(coef_mu_y_t_summary$lwr) < abs(coef_mu_y_t_summary$upr),
-                                      coef_mu_y_t_summary$lwr,
-                                      coef_mu_y_t_summary$upr))[gene_sig$gene],
-                 rv_limit = 100*RV_null_limit[gene_sig$gene]) %>%
+dt <- tibble(Name = gene_sig,
+                 naive_mean  = coefs[gene_sig],
+                 naive_limit = (ifelse(abs(intervals[gene_sig, 1]) < abs(intervals[gene_sig, 2]),
+                                      intervals[gene_sig, ],
+                                      intervals[gene_sig, 2])),
+                 rv_limit = round(100*RV_null_limit[gene_sig])) %>%
   arrange(desc(naive_mean)) %>%
-  mutate_at(c("rv_limit"), funs(replace_na(., 'robust'))) %>%
+  mutate_at(c("rv_limit"), funs(replace_na(., '***'))) %>%
   column_to_rownames(var = "Name") %>%
   'colnames<-'(c('tau_{mean}', 'tau_{limit}', 'RV_limit(%)')) 
 dt   
