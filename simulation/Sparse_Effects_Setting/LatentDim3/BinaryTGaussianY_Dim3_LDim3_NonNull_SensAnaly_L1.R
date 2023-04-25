@@ -168,14 +168,28 @@ plot_r2_normratio
 # ggsave("LatentDim3/plot_r2_normratio.pdf", plot = plot_r2_normratio,
 #        width = 125, height = 95, units = "mm")
 
-tau_est_selected <- rbind(tau_cali_mat[c(1, 13),], tau_t)
-r2_est_selected <- c(round(100*R2_vec[c(1, 13)], digits = 0), 0) %>% as.character()
+tau_est_selected <- rbind(tau_cali_mat[c(1, 70),], tau_t)
+r2_est_selected <- c(round(100*R2_vec[c(1, 70)], digits = 0), 0) %>% as.character()
 RMSE_selected <- apply(tau_est_selected, 1, function(x) sqrt(mean((x - tau)^2))) %>% round(digits = 2)
 trivial_index <- (1:k)[!(1:k) %in% nontrivial_index]
 set.seed(123)
 trivial_seleted_index <- sample(trivial_index, size = 55, replace = FALSE)
 
-scatter_est_r2 <- tibble(tau = as.numeric(tau_est_selected[, c(trivial_seleted_index, nontrivial_index)]),
+
+## plot the abs(tau -tau.hat), ordered by the magnitude
+tau_est_absdiff <- rbind(abs(tau_est_selected[1,] - tau),
+                       abs(tau_est_selected[2,] - tau),
+                       abs(tau_est_selected[3,] - tau))
+
+
+## sort abs(tau-tau.hat) by the abs magnitude of tau
+# trivial_seleted_index_sorted <- trivial_seleted_index[order(abs(tau[trivial_seleted_index]))]
+# nontrivial_index_sorted <- nontrivial_index[order(abs(tau[nontrivial_index]))]
+
+trivial_seleted_index_sorted <- trivial_seleted_index[order(tau_est_absdiff[3,trivial_seleted_index])]
+nontrivial_index_sorted <- nontrivial_index[order(tau_est_absdiff[3,nontrivial_index])]
+
+scatter_est_r2 <- tibble(tau = as.numeric(tau_est_absdiff[, c(trivial_seleted_index_sorted, nontrivial_index_sorted)]),
                          R2 = factor(rep(r2_est_selected, 100)),
                          index = rep(1:100, each = 3)) %>%
   ggplot() + geom_point(aes(x = index, y = tau, col = R2), size = 2.5, alpha = 0.7) +
@@ -185,15 +199,38 @@ scatter_est_r2 <- tibble(tau = as.numeric(tau_est_selected[, c(trivial_seleted_i
                                  bquote(R^2~"="~.(r2_est_selected[2])~"%, RMSE="~.(RMSE_selected[2])),
                                  bquote(R^2~"="~.(r2_est_selected[1])~"%, RMSE="~.(RMSE_selected[1]))))+
   geom_vline(aes(xintercept=55.5), linetype = "dashed") +
-  labs(y = expression(tau), x = 'i', title = "Estimates of Treatment Coefficients") +
-  ylim(-14.8, 18.3) +
+  labs(y = expression("|"~hat(tau)~"-"~tau~"|"), x = 'i', title = "Absolute Difference of the Estimate and True Effect") +
+  ylim(-2.5, 18.3) +
   annotate(geom = "text", x = c(23, 79), y = c(17.5, 17.5), size = 8,
            label = c("null", "non-null")) +
   theme_bw(base_size = 25) +
   theme(plot.title = element_text(hjust = 0.5, size = 23.5),
         legend.position = "bottom")
 scatter_est_r2
-# ggsave("LatentDim3/scatter_est_r2_L1.pdf", plot = scatter_est_r2, width = 300, height = 160, units = "mm")
+ggsave("LatentDim3/scatter_est_r2_L1_v2.pdf", plot = scatter_est_r2, width = 300, height = 160, units = "mm")
+
+
+
+
+# scatter_est_r2 <- tibble(tau = as.numeric(tau_est_selected[, c(trivial_seleted_index, nontrivial_index)]),
+#                          R2 = factor(rep(r2_est_selected, 100)),
+#                          index = rep(1:100, each = 3)) %>%
+#   ggplot() + geom_point(aes(x = index, y = tau, col = R2), size = 2.5, alpha = 0.7) +
+#   scale_colour_manual(name = "",
+#                       values = c("#3B99B1", "#FFE93F", "#F5191C"),
+#                       labels = c(bquote(R^2~"="~.(r2_est_selected[3])~"%, RMSE="~.(RMSE_selected[3])),
+#                                  bquote(R^2~"="~.(r2_est_selected[2])~"%, RMSE="~.(RMSE_selected[2])),
+#                                  bquote(R^2~"="~.(r2_est_selected[1])~"%, RMSE="~.(RMSE_selected[1]))))+
+#   geom_vline(aes(xintercept=55.5), linetype = "dashed") +
+#   labs(y = expression(tau), x = 'i', title = "Estimates of Treatment Coefficients") +
+#   ylim(-14.8, 18.3) +
+#   annotate(geom = "text", x = c(23, 79), y = c(17.5, 17.5), size = 8,
+#            label = c("null", "non-null")) +
+#   theme_bw(base_size = 25) +
+#   theme(plot.title = element_text(hjust = 0.5, size = 23.5),
+#         legend.position = "bottom")
+# scatter_est_r2
+# ggsave("LatentDim3/scatter_est_r2_L1_v1.pdf", plot = scatter_est_r2, width = 300, height = 160, units = "mm")
 
 
 ###################################### worstcase calibration ############################################################
